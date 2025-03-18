@@ -21,7 +21,7 @@ namespace VCSpacePhysics
         {
             // Plugin startup logic
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
-            
+
             // Configure Harmony
             var harmony = new Harmony(PluginInfo.PLUGIN_GUID);
             var assembly = Assembly.GetExecutingAssembly();
@@ -33,6 +33,17 @@ namespace VCSpacePhysics
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
 
+        }
+    }
+
+    [HarmonyPatch]
+    public class Patches
+    {
+        // Remove default (bad) behaviour
+        [HarmonyPrefix, HarmonyPatch(typeof(MovingSpacePlatform), nameof(MovingSpacePlatform.ApplyFriction))]
+        public static bool ApplyFriction(float deltaTime)
+        {
+            return false;
         }
     }
 }
