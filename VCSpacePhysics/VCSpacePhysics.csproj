@@ -52,6 +52,9 @@
       <Reference Include="UnityEngine.LocalizationModule">
         <HintPath>..\..\..\SecondarySteamLibrary\steamapps\common\Void Crew\Void Crew_Data\Managed\UnityEngine.LocalizationModule.dll</HintPath>
       </Reference>
+      <Reference Include="UnityEngine.UI">
+        <HintPath>..\..\..\SecondarySteamLibrary\steamapps\common\Void Crew\Void Crew_Data\Managed\UnityEngine.UI.dll</HintPath>
+      </Reference>
     </ItemGroup>
 
     <ItemGroup>

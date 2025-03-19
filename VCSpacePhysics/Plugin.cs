@@ -16,6 +16,7 @@ using CG.Ship.Modules;
 using UnityEngine.InputSystem;
 using Gameplay.Helm;
 using Cinemachine;
+using UnityEngine.UI;
 
 namespace VCSpacePhysics
 {
@@ -275,6 +276,11 @@ namespace VCSpacePhysics
         {
             __instance.gameObject.AddComponent<HelmExtras>();
 
+            var pitchYawUIGameObject = new GameObject();
+            pitchYawUIGameObject.transform.SetParent(__instance.transform);
+            pitchYawUIGameObject.transform.localPosition = new Vector3(0, 1.75f, -2.2f);
+            pitchYawUIGameObject.AddComponent<PitchYawUI>();
+
             return true;
         }
 
@@ -393,6 +399,63 @@ namespace VCSpacePhysics
                     _helm.Engine.TorqueInputs["PlayerInput"] = rotationInput;
                 }
             }
+        }
+    }
+
+    class PitchYawUI : MonoBehaviour
+    {
+        static PitchYawUI _instance;
+        Canvas canvas;
+
+        GameObject outerCircle;
+        GameObject innerCircle;
+
+        public void Awake()
+        {
+            if(_instance != null)
+            {
+                Destroy(_instance.gameObject); // Only allow one at a time
+            }
+            _instance = this;
+
+            var rectTransform = gameObject.AddComponent<RectTransform>();
+            rectTransform.anchoredPosition3D = new Vector3(-0.0121f, 1.8051f, - 2.16f);
+            rectTransform.sizeDelta = new Vector2(0.2f, 0.2f);
+
+            canvas = gameObject.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+
+            outerCircle = new GameObject();
+            outerCircle.transform.SetParent(gameObject.transform);
+
+            var outerCircleRectTransform = outerCircle.AddComponent<RectTransform>();
+            outerCircleRectTransform.anchoredPosition3D = Vector3.zero;
+            outerCircleRectTransform.sizeDelta = new Vector2(0.5f, 0.5f);
+
+            var outerCircleCircle = outerCircle.AddComponent<Circle>();
+            outerCircleCircle.color = Color.white;
+            outerCircleCircle.lineWeight = 0.003f;
+            outerCircleCircle.filled = false;
+            outerCircleCircle.segments = 128;
+
+
+
+            innerCircle = new GameObject();
+            innerCircle.transform.SetParent(gameObject.transform);
+
+            var innerCircleRectTransform = innerCircle.AddComponent<RectTransform>();
+            innerCircleRectTransform.anchoredPosition3D = Vector3.zero;
+            innerCircleRectTransform.sizeDelta = new Vector2(0.02f, 0.02f);
+
+            var innerCircleCircle = innerCircle.AddComponent<Circle>();
+            innerCircleCircle.color = Color.white;
+            innerCircleCircle.filled = true;
+            innerCircleCircle.segments = 12;
+        }
+
+        public void OnDestroy()
+        {
+            _instance = null;
         }
     }
 }
