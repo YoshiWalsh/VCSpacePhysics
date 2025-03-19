@@ -48,6 +48,18 @@ namespace VCSpacePhysics
             return false;
         }
 
+        [HarmonyPrefix, HarmonyPatch(typeof(ShipAutoTilt), nameof(ShipAutoTilt.ApplyPitch))]
+        public static bool ApplyPitch()
+        {
+            return false;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(ShipAutoTilt), nameof(ShipAutoTilt.ApplyRoll))]
+        public static bool ApplyRoll()
+        {
+            return false;
+        }
+
         [HarmonyPrefix, HarmonyPatch(typeof(ShipEngine), nameof(ShipEngine.ApplyForce))]
         public static bool ApplyForce(ShipEngine __instance)
         {
