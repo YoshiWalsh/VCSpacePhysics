@@ -1,4 +1,4 @@
-using BepInEx;
+﻿using BepInEx;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -10,6 +10,8 @@ using Gameplay.Ship;
 using Photon.Pun;
 using CG.Input;
 using UnityEngine.Localization;
+using VFX;
+using static VFX.ThrusterEffectPlayerInput;
 
 namespace VCSpacePhysics
 {
@@ -118,6 +120,162 @@ namespace VCSpacePhysics
                     }
                 }
             }
+        }
+
+        [Flags]
+        public enum ShipThrust // Represent all possible 6DOF movements
+        {
+            None = 0,
+            Forward = 2 << 0,
+            Backward = 2 << 1,
+            Left = 2 << 2,
+            Right = 2 << 3,
+            Up = 2 << 4,
+            Down = 2 << 5,
+            RollCounterclockwise = 2 << 6,
+            RollClockwise = 2 << 7,
+            PitchUp = 2 << 8,
+            PitchDown = 2 << 9,
+            YawLeft = 2 << 10,
+            YawRight = 2 << 11,
+        }
+
+        public static Dictionary<ThrusterEffectPlayerInput, ShipThrust> ThrusterMapping = new Dictionary<ThrusterEffectPlayerInput, ShipThrust>();
+
+        [HarmonyPostfix, HarmonyPatch(typeof(ThrusterEffectPlayerInput), nameof(ThrusterEffectPlayerInput.Awake), [])]
+        static void ThrusterEffectPlayerInputAwake(ThrusterEffectPlayerInput __instance)
+        {
+            const float THRUSTER_POSITION_EPSILON = 0.5f;
+            GameObject gameObject = __instance.gameObject;
+            ShipThrust thrusterMovements = ShipThrust.None;
+
+            if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_Forward))
+            {
+                thrusterMovements |= ShipThrust.Forward;
+            }
+            if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_Back))
+            {
+                thrusterMovements |= ShipThrust.Backward;
+            }
+            if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_StrafeLeft))
+            {
+                thrusterMovements |= ShipThrust.Left;
+            }
+            if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_StrafeRight))
+            {
+                thrusterMovements |= ShipThrust.Right;
+            }
+            if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_Up))
+            {
+                thrusterMovements |= ShipThrust.Up;
+
+                if (gameObject.transform.localPosition.x < 0 - THRUSTER_POSITION_EPSILON) // Left upwards thrusters
+                {
+                    thrusterMovements |= ShipThrust.RollClockwise;
+                }
+                if (gameObject.transform.localPosition.x > 0 + THRUSTER_POSITION_EPSILON) // Right upwards thrusters
+                {
+                    thrusterMovements |= ShipThrust.RollCounterclockwise;
+                }
+                if (gameObject.transform.localPosition.z < 0 - THRUSTER_POSITION_EPSILON) // Rear upwards thrusters
+                {
+                    thrusterMovements |= ShipThrust.PitchDown;
+                }
+                if (gameObject.transform.localPosition.z > 0 + THRUSTER_POSITION_EPSILON) // Front upwards thrusters
+                {
+                    thrusterMovements |= ShipThrust.PitchUp;
+                }
+            }
+            if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_Down))
+            {
+                thrusterMovements |= ShipThrust.Down;
+
+                if (gameObject.transform.localPosition.x < 0 - THRUSTER_POSITION_EPSILON) // Left downwards thrusters
+                {
+                    thrusterMovements |= ShipThrust.RollCounterclockwise;
+                }
+                if (gameObject.transform.localPosition.x > 0 + THRUSTER_POSITION_EPSILON) // Right downwards thrusters
+                {
+                    thrusterMovements |= ShipThrust.RollClockwise;
+                }
+                if (gameObject.transform.localPosition.z < 0 - THRUSTER_POSITION_EPSILON) // Rear downwards thrusters
+                {
+                    thrusterMovements |= ShipThrust.PitchUp;
+                }
+                if (gameObject.transform.localPosition.z > 0 + THRUSTER_POSITION_EPSILON) // Front downwards thrusters
+                {
+                    thrusterMovements |= ShipThrust.PitchDown;
+                }
+            }
+            if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_TurnLeft))
+            {
+                thrusterMovements |= ShipThrust.YawLeft;
+            }
+            if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_TurnRight))
+            {
+                thrusterMovements |= ShipThrust.YawRight;
+            }
+
+            ThrusterMapping.Add(__instance, thrusterMovements);
+            gameObject.AddComponent<ThrusterCleanupBehaviour>();
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(ThrusterEffectPlayerInput), nameof(ThrusterEffectPlayerInput.GetMaxThrustValue))]
+        static bool ThrusterEffectPlayerInputGetMaxThrustValue(ThrusterEffectPlayerInput __instance, ref float __result, ThrusterEffectPlayerInput.ThrustFlags thrustFlags)
+        {
+            var thrusterMovements = ThrusterMapping.GetValueSafe(__instance);
+
+            float maximumThrust = 0f;
+            foreach (ShipThrust thrusterMovement in Enum.GetValues(typeof(ShipThrust)))
+            {
+                if (!thrusterMovements.HasFlag(thrusterMovement))
+                {
+                    continue;
+                }
+
+                float movementThrust = 0f;
+                foreach (ShipEngine engine in __instance.engines)
+                {
+                    movementThrust += thrusterMovement switch
+                    {
+                        ShipThrust.Forward => Mathf.Clamp(engine.AppliedThrust.z, 0f, 1f),
+                        ShipThrust.Backward => Mathf.Clamp(0f - engine.AppliedThrust.z, 0f, 1f),
+                        ShipThrust.Right => Mathf.Clamp(engine.AppliedThrust.x, 0f, 1f),
+                        ShipThrust.Left => Mathf.Clamp(0f - engine.AppliedThrust.x, 0f, 1f),
+                        ShipThrust.Up => Mathf.Clamp(engine.AppliedThrust.y, 0f, 1f),
+                        ShipThrust.Down => Mathf.Clamp(0f - engine.AppliedThrust.y, 0f, 1f),
+                        ShipThrust.RollCounterclockwise => Mathf.Clamp(0f - engine.AppliedTorque.z, 0f, 1f),
+                        ShipThrust.RollClockwise => Mathf.Clamp(engine.AppliedTorque.z, 0f, 1f),
+                        ShipThrust.PitchUp => Mathf.Clamp(0f - engine.AppliedTorque.x, 0f, 1f),
+                        ShipThrust.PitchDown => Mathf.Clamp(engine.AppliedTorque.x, 0f, 1f),
+                        ShipThrust.YawRight => Mathf.Clamp(engine.AppliedTorque.y, 0f, 1f),
+                        ShipThrust.YawLeft => Mathf.Clamp(0f - engine.AppliedTorque.y, 0f, 1f),
+                        _ => 0f,
+                    };
+                }
+                if(movementThrust > maximumThrust)
+                {
+                    maximumThrust = movementThrust;
+                }
+            }
+            
+            __result = maximumThrust;
+            return false;
+        }
+    }
+
+    class ThrusterCleanupBehaviour : MonoBehaviour
+    {
+        private ThrusterEffectPlayerInput thrusterEffect;
+
+        public virtual void Awake()
+        {
+            thrusterEffect = this.gameObject.GetComponent<ThrusterEffectPlayerInput>();
+        }
+
+        public void OnDestroy()
+        {
+            Patches.ThrusterMapping.Remove(thrusterEffect);
         }
     }
 }
