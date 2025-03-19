@@ -14,6 +14,8 @@ using VFX;
 using static VFX.ThrusterEffectPlayerInput;
 using CG.Ship.Modules;
 using UnityEngine.InputSystem;
+using Gameplay.Helm;
+using Cinemachine;
 
 namespace VCSpacePhysics
 {
@@ -328,6 +330,22 @@ namespace VCSpacePhysics
             __instance.EngineTorquePower.z = __instance.EngineTorquePower.y = 15;
 
             return true;
+        }
+
+        [HarmonyPostfix, HarmonyPatch(typeof(ShipExternalCamera), nameof(ShipExternalCamera.Move))]
+        static void ShipExternalCameraMove(ShipExternalCamera __instance)
+        {
+            if (__instance._currentCameraType == ShipExternalCamera.CameraType.ThirdPersonCamera)
+            {
+                __instance.Anchor.rotation = __instance.transform.rotation;
+                __instance.Anchor.localRotation = Quaternion.Euler(__instance.EulerRotation.y, __instance.EulerRotation.x, 0f);
+            }
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(CinemachineHardLookAt), nameof(CinemachineHardLookAt.MutateCameraState))]
+        static void CinemachineHardLookAtMutateCameraState(CinemachineHardLookAt __instance, ref CameraState curState, float deltaTime)
+        {
+            curState.ReferenceUp = __instance.FollowTarget.transform.up;
         }
     }
 
