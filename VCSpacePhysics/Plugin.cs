@@ -12,6 +12,8 @@ using CG.Input;
 using UnityEngine.Localization;
 using VFX;
 using static VFX.ThrusterEffectPlayerInput;
+using CG.Ship.Modules;
+using UnityEngine.InputSystem;
 
 namespace VCSpacePhysics
 {
@@ -149,6 +151,9 @@ namespace VCSpacePhysics
             GameObject gameObject = __instance.gameObject;
             ShipThrust thrusterMovements = ShipThrust.None;
 
+            __instance.PowerOnLerp = 0.2f;
+            __instance.PowerOffLerp = 0.2f;
+
             if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_Forward))
             {
                 thrusterMovements |= ShipThrust.Forward;
@@ -244,8 +249,8 @@ namespace VCSpacePhysics
                         ShipThrust.Left => Mathf.Clamp(0f - engine.AppliedThrust.x, 0f, 1f),
                         ShipThrust.Up => Mathf.Clamp(engine.AppliedThrust.y, 0f, 1f),
                         ShipThrust.Down => Mathf.Clamp(0f - engine.AppliedThrust.y, 0f, 1f),
-                        ShipThrust.RollCounterclockwise => Mathf.Clamp(0f - engine.AppliedTorque.z, 0f, 1f),
-                        ShipThrust.RollClockwise => Mathf.Clamp(engine.AppliedTorque.z, 0f, 1f),
+                        ShipThrust.RollClockwise => Mathf.Clamp(0f - engine.AppliedTorque.z, 0f, 1f),
+                        ShipThrust.RollCounterclockwise => Mathf.Clamp(engine.AppliedTorque.z, 0f, 1f),
                         ShipThrust.PitchUp => Mathf.Clamp(0f - engine.AppliedTorque.x, 0f, 1f),
                         ShipThrust.PitchDown => Mathf.Clamp(engine.AppliedTorque.x, 0f, 1f),
                         ShipThrust.YawRight => Mathf.Clamp(engine.AppliedTorque.y, 0f, 1f),
@@ -262,6 +267,68 @@ namespace VCSpacePhysics
             __result = maximumThrust;
             return false;
         }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(Helm), nameof(Helm.Awake))]
+        static bool HelmAwake(Helm __instance)
+        {
+            __instance.gameObject.AddComponent<HelmExtras>();
+
+            return true;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(ControllingHelm), nameof(ControllingHelm.MoveLeft))]
+        // Remap move left to roll counter clockwise
+        static bool MoveLeft(ControllingHelm __instance, InputAction.CallbackContext obj)
+        {
+            var helmExtras = __instance._helm.gameObject.GetComponent<HelmExtras>();
+
+            helmExtras._rotateInputNeg.z = obj.action.ReadValue<float>();
+            helmExtras.SetRotationInput(helmExtras._rotateInputNeg - helmExtras._rotateInputPos);
+
+            return false;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(ControllingHelm), nameof(ControllingHelm.MoveRight))]
+        // Remap move right to roll clockwise
+        static bool MoveRight(ControllingHelm __instance, InputAction.CallbackContext obj)
+        {
+
+            var helmExtras = __instance._helm.gameObject.GetComponent<HelmExtras>();
+
+            helmExtras._rotateInputPos.z = obj.action.ReadValue<float>();
+            helmExtras.SetRotationInput(helmExtras._rotateInputNeg - helmExtras._rotateInputPos);
+
+            return false;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(ControllingHelm), nameof(ControllingHelm.RotateLeft))]
+        // Remap rotate left to thrust left
+        static bool RotateLeft(ControllingHelm __instance, InputAction.CallbackContext obj)
+        {
+            __instance._helmInputNeg.x = obj.action.ReadValue<float>();
+            __instance._helm.SetTranslationInput(__instance._helmInputPos - __instance._helmInputNeg);
+
+            return false;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(ControllingHelm), nameof(ControllingHelm.RotateRight))]
+        // Remap rotate right to thrust right
+        static bool RotateRight(ControllingHelm __instance, InputAction.CallbackContext obj)
+        {
+            __instance._helmInputPos.x = obj.action.ReadValue<float>();
+            __instance._helm.SetTranslationInput(__instance._helmInputPos - __instance._helmInputNeg);
+
+            return false;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(ShipEngine), nameof(ShipEngine.ApplyTorque))]
+        static bool ShipEngineApplyTorque(ShipEngine __instance)
+        {
+            __instance.EngineTorquePower.x = __instance.EngineTorquePower.y = 15;
+            __instance.EngineTorquePower.z = __instance.EngineTorquePower.y = 15;
+
+            return true;
+        }
     }
 
     class ThrusterCleanupBehaviour : MonoBehaviour
@@ -276,6 +343,38 @@ namespace VCSpacePhysics
         public void OnDestroy()
         {
             Patches.ThrusterMapping.Remove(thrusterEffect);
+        }
+    }
+
+    class HelmExtras : MonoBehaviour
+    {
+        public Vector3 _rotateInputPos = Vector3.zero;
+        public Vector3 _rotateInputNeg = Vector3.zero;
+        private Helm _helm;
+
+        public void Awake()
+        {
+            _helm = gameObject.GetComponent<Helm>();
+        }
+
+        public void SetRotationInput(Vector3 rotationInput)
+        {
+            if (_helm.IsPowered && !_helm._pilotingLocked)
+            {
+                if (_helm._cruiseControlActive && rotationInput.magnitude <= 0.05f && !_helm._cruiseControlOverrulingReady)
+                {
+                    _helm._cruiseControlOverrulingReady = true;
+                }
+                if (_helm._cruiseControlActive && rotationInput.magnitude > 0.25f && _helm._cruiseControlOverrulingReady)
+                {
+                    _helm.RequestRegainManualControl();
+                }
+                if (!_helm._cruiseControlActive)
+                {
+                    var userInputsTorque = rotationInput.magnitude > 0.01f;
+                    _helm.Engine.TorqueInputs["PlayerInput"] = rotationInput;
+                }
+            }
         }
     }
 }
