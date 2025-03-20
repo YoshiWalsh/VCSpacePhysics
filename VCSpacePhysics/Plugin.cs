@@ -1,4 +1,4 @@
-using BepInEx;
+﻿using BepInEx;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -18,6 +18,7 @@ using Gameplay.Helm;
 using Cinemachine;
 using UnityEngine.UI;
 using BepInEx.Logging;
+using System.Diagnostics.CodeAnalysis;
 
 namespace VCSpacePhysics
 {
@@ -347,14 +348,18 @@ namespace VCSpacePhysics
             return true;
         }
 
-        [HarmonyPostfix, HarmonyPatch(typeof(ShipExternalCamera), nameof(ShipExternalCamera.Move))]
-        static void ShipExternalCameraMove(ShipExternalCamera __instance)
+        [HarmonyPrefix, HarmonyPatch(typeof(ShipExternalCamera), nameof(ShipExternalCamera.Move))]
+        static bool ShipExternalCameraMove(ShipExternalCamera __instance)
         {
             if (__instance._currentCameraType == ShipExternalCamera.CameraType.ThirdPersonCamera)
             {
-                __instance.Anchor.rotation = __instance.transform.rotation;
+                Vector3 vector = __instance.engine.AppliedThrust * __instance.accelerationOffsetMultiplier;
+                Vector3 worldspaceVector = __instance.engine.ShipMovementController.transform.TransformDirection(vector);
+                __instance.accelerationOffset = Vector3.Lerp(__instance.accelerationOffset, worldspaceVector, Time.deltaTime * 3f);
+                __instance.Anchor.transform.position = __instance.transform.position - __instance.accelerationOffset;
                 __instance.Anchor.localRotation = Quaternion.Euler(__instance.EulerRotation.y, __instance.EulerRotation.x, 0f);
             }
+            return false;
         }
 
         [HarmonyPrefix, HarmonyPatch(typeof(CinemachineHardLookAt), nameof(CinemachineHardLookAt.MutateCameraState))]
