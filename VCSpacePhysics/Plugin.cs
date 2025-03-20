@@ -104,15 +104,18 @@ namespace VCSpacePhysics
                 }
             };
 
-            foreach (SettingsControlList.Group group in __instance.KeyBindDisplayList().groups)
+
+            var keybinds = __instance.KeyBindDisplayList();
+            var jetpackControlGroupIndex = keybinds.groups.FindIndex(g => g.Name.FallBackString == "Additional Controls (EVA Jetpack)");
+            if(jetpackControlGroupIndex != -1)
+            {
+                keybinds.groups.RemoveAt(jetpackControlGroupIndex);
+            }
+            foreach (SettingsControlList.Group group in keybinds.groups)
             {
                 if (group.inputActionMapName == "Ship")
                 {
                     group.Name = new DefaultableLocalizedString("Additional Controls (Ship / EVA Jetpack)", new LocalizedString());
-                }
-                if (group.Name.FallBackString == "Additional Controls (EVA Jetpack)")
-                {
-                    __instance.KeyBindDisplayList().groups.Remove(group);
                 }
 
                 if (ControlRenames.ContainsKey(group.inputActionMapName))
