@@ -159,6 +159,9 @@ namespace VCSpacePhysics
             __instance.PowerOnLerp = 0.2f;
             __instance.PowerOffLerp = 0.2f;
 
+            var Ship = __instance.gameObject.GetComponentInParent<PlayerShip>();
+            var thrusterPositionInShipSpace = Ship.gameObject.transform.InverseTransformPoint(gameObject.transform.position);
+
             if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_Forward))
             {
                 thrusterMovements |= ShipThrust.Forward;
@@ -179,19 +182,19 @@ namespace VCSpacePhysics
             {
                 thrusterMovements |= ShipThrust.Up;
 
-                if (gameObject.transform.localPosition.x < 0 - THRUSTER_POSITION_EPSILON) // Left upwards thrusters
+                if (thrusterPositionInShipSpace.x < 0 - THRUSTER_POSITION_EPSILON) // Left upwards thrusters
                 {
                     thrusterMovements |= ShipThrust.RollClockwise;
                 }
-                if (gameObject.transform.localPosition.x > 0 + THRUSTER_POSITION_EPSILON) // Right upwards thrusters
+                if (thrusterPositionInShipSpace.x > 0 + THRUSTER_POSITION_EPSILON) // Right upwards thrusters
                 {
                     thrusterMovements |= ShipThrust.RollCounterclockwise;
                 }
-                if (gameObject.transform.localPosition.z < 0 - THRUSTER_POSITION_EPSILON) // Rear upwards thrusters
+                if (thrusterPositionInShipSpace.z < 0 - THRUSTER_POSITION_EPSILON) // Rear upwards thrusters
                 {
                     thrusterMovements |= ShipThrust.PitchDown;
                 }
-                if (gameObject.transform.localPosition.z > 0 + THRUSTER_POSITION_EPSILON) // Front upwards thrusters
+                if (thrusterPositionInShipSpace.z > 0 + THRUSTER_POSITION_EPSILON) // Front upwards thrusters
                 {
                     thrusterMovements |= ShipThrust.PitchUp;
                 }
@@ -200,19 +203,19 @@ namespace VCSpacePhysics
             {
                 thrusterMovements |= ShipThrust.Down;
 
-                if (gameObject.transform.localPosition.x < 0 - THRUSTER_POSITION_EPSILON) // Left downwards thrusters
+                if (thrusterPositionInShipSpace.x < 0 - THRUSTER_POSITION_EPSILON) // Left downwards thrusters
                 {
                     thrusterMovements |= ShipThrust.RollCounterclockwise;
                 }
-                if (gameObject.transform.localPosition.x > 0 + THRUSTER_POSITION_EPSILON) // Right downwards thrusters
+                if (thrusterPositionInShipSpace.x > 0 + THRUSTER_POSITION_EPSILON) // Right downwards thrusters
                 {
                     thrusterMovements |= ShipThrust.RollClockwise;
                 }
-                if (gameObject.transform.localPosition.z < 0 - THRUSTER_POSITION_EPSILON) // Rear downwards thrusters
+                if (thrusterPositionInShipSpace.z < 0 - THRUSTER_POSITION_EPSILON) // Rear downwards thrusters
                 {
                     thrusterMovements |= ShipThrust.PitchUp;
                 }
-                if (gameObject.transform.localPosition.z > 0 + THRUSTER_POSITION_EPSILON) // Front downwards thrusters
+                if (thrusterPositionInShipSpace.z > 0 + THRUSTER_POSITION_EPSILON) // Front downwards thrusters
                 {
                     thrusterMovements |= ShipThrust.PitchDown;
                 }
