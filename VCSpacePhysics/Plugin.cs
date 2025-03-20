@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -70,9 +70,8 @@ namespace VCSpacePhysics
         [HarmonyPrefix, HarmonyPatch(typeof(ShipEngine), nameof(ShipEngine.ApplyForce))]
         public static bool ApplyForce(ShipEngine __instance)
         {
-            if (__instance.IsPowered && ((MonoBehaviourPun)__instance).photonView.AmOwner)
+            if (__instance.IsPowered && __instance.photonView.AmOwner)
             {
-                Quaternion quaternion = Quaternion.FromToRotation(Vector3.forward, Vector3.ProjectOnPlane(__instance.ShipMovementController.transform.forward, Vector3.up));
                 Vector3 a = __instance.InputSum(__instance.ThrustInputs);
                 Vector3 a2 = ((!__instance.boosted) ? Vector3.Scale(a, __instance.EngineThrustPower) : Vector3.Scale(a, __instance.BoosterThrustPower));
                 a2 = Vector3.Scale(a2, new Vector3(__instance.StrifePower.Value, __instance.ElevationPower.Value, __instance.ForwardPower.Value));
@@ -80,8 +79,8 @@ namespace VCSpacePhysics
                 {
                     a2 = Vector3.Scale(a2, new Vector3(1, 1, REARWARD_POWER_MULTIPLIER));
                 }
-                Vector3 vector = quaternion * a2 * __instance.EnginePower.Value;
-                __instance.ShipMovementController.AddForce(vector * Time.fixedDeltaTime, worldSpace: true, __instance.userInputsThrust || __instance.CruiseControlActive);
+                Vector3 vector = a2 * __instance.EnginePower.Value;
+                __instance.ShipMovementController.AddForce(vector * Time.fixedDeltaTime, worldSpace: false, __instance.userInputsThrust || __instance.CruiseControlActive);
             }
             return false;
         }
