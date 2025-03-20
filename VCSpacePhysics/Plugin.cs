@@ -362,6 +362,12 @@ namespace VCSpacePhysics
             return false;
         }
 
+        [HarmonyPostfix, HarmonyPatch(typeof(ShipExternalCamera), nameof(ShipExternalCamera.OnShipExternalViewToggle))]
+        static void ShipExternalCameraOnShipExternalViewToggle(ShipExternalCamera __instance)
+        {
+            __instance.transform.rotation = __instance.transform.parent.rotation;
+        }
+
         [HarmonyPrefix, HarmonyPatch(typeof(CinemachineHardLookAt), nameof(CinemachineHardLookAt.MutateCameraState))]
         static void CinemachineHardLookAtMutateCameraState(CinemachineHardLookAt __instance, ref CameraState curState, float deltaTime)
         {
