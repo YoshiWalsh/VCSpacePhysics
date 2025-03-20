@@ -17,15 +17,19 @@ using UnityEngine.InputSystem;
 using Gameplay.Helm;
 using Cinemachine;
 using UnityEngine.UI;
+using BepInEx.Logging;
 
 namespace VCSpacePhysics
 {
     [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
     public class Plugin : BaseUnityPlugin
     {
+        public static ManualLogSource logger;
 
         private void Awake()
         {
+            logger = Logger;
+
             // Plugin startup logic
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
 
