@@ -11,7 +11,6 @@ using Photon.Pun;
 using CG.Input;
 using UnityEngine.Localization;
 using VFX;
-using static VFX.ThrusterEffectPlayerInput;
 using CG.Ship.Modules;
 using UnityEngine.InputSystem;
 using Gameplay.Helm;
@@ -26,35 +25,11 @@ using CG.Game.Player;
 using UnityEngine.UIElements;
 using FMODUnity;
 using Cinemachine.Utility;
+#pragma warning disable CS0612 // Suppress obsolete warning
+using static VFX.ThrusterEffectPlayerInput;
 
 namespace VCSpacePhysics
 {
-    [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
-    public class Plugin : BaseUnityPlugin
-    {
-        public static ManualLogSource logger;
-
-        private void Awake()
-        {
-            logger = Logger;
-
-            // Plugin startup logic
-            Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
-
-            // Configure Harmony
-            var harmony = new Harmony(PluginInfo.PLUGIN_GUID);
-            var assembly = Assembly.GetExecutingAssembly();
-            harmony.PatchAll();
-
-            SceneManager.sceneLoaded += OnSceneLoaded;
-        }
-
-        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-        {
-
-        }
-    }
-
     [HarmonyPatch]
     public class Patches
     {
@@ -180,23 +155,23 @@ namespace VCSpacePhysics
             {
                 var thrusterPositionInShipSpace = Ship.gameObject.transform.InverseTransformPoint(gameObject.transform.position);
 
-                if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_Forward))
+                if (__instance.flags.HasFlag(ThrustFlags.Input_Forward))
                 {
                     thrusterMovements |= ShipThrust.Forward;
                 }
-                if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_Back))
+                if (__instance.flags.HasFlag(ThrustFlags.Input_Back))
                 {
                     thrusterMovements |= ShipThrust.Backward;
                 }
-                if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_StrafeLeft))
+                if (__instance.flags.HasFlag(ThrustFlags.Input_StrafeLeft))
                 {
                     thrusterMovements |= ShipThrust.Left;
                 }
-                if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_StrafeRight))
+                if (__instance.flags.HasFlag(ThrustFlags.Input_StrafeRight))
                 {
                     thrusterMovements |= ShipThrust.Right;
                 }
-                if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_Up))
+                if (__instance.flags.HasFlag(ThrustFlags.Input_Up))
                 {
                     thrusterMovements |= ShipThrust.Up;
 
@@ -217,7 +192,7 @@ namespace VCSpacePhysics
                         thrusterMovements |= ShipThrust.PitchUp;
                     }
                 }
-                if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_Down))
+                if (__instance.flags.HasFlag(ThrustFlags.Input_Down))
                 {
                     thrusterMovements |= ShipThrust.Down;
 
@@ -238,11 +213,11 @@ namespace VCSpacePhysics
                         thrusterMovements |= ShipThrust.PitchDown;
                     }
                 }
-                if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_TurnLeft))
+                if (__instance.flags.HasFlag(ThrustFlags.Input_TurnLeft))
                 {
                     thrusterMovements |= ShipThrust.YawLeft;
                 }
-                if (__instance.flags.HasFlag(ThrusterEffectPlayerInput.ThrustFlags.Input_TurnRight))
+                if (__instance.flags.HasFlag(ThrustFlags.Input_TurnRight))
                 {
                     thrusterMovements |= ShipThrust.YawRight;
                 }
@@ -316,7 +291,7 @@ namespace VCSpacePhysics
 
         [HarmonyPrefix, HarmonyPatch(typeof(ControllingHelm), nameof(ControllingHelm.MoveLeft))]
         // Remap move left to roll counter clockwise
-        static bool MoveLeft(ControllingHelm __instance, InputAction.CallbackContext obj)
+        static bool MoveLeft(ControllingHelm __instance, ref InputAction.CallbackContext obj)
         {
             var helmExtras = __instance._helm.gameObject.GetComponent<HelmExtras>();
 
@@ -328,7 +303,7 @@ namespace VCSpacePhysics
 
         [HarmonyPrefix, HarmonyPatch(typeof(ControllingHelm), nameof(ControllingHelm.MoveRight))]
         // Remap move right to roll clockwise
-        static bool MoveRight(ControllingHelm __instance, InputAction.CallbackContext obj)
+        static bool MoveRight(ControllingHelm __instance, ref InputAction.CallbackContext obj)
         {
 
             var helmExtras = __instance._helm.gameObject.GetComponent<HelmExtras>();
@@ -341,7 +316,7 @@ namespace VCSpacePhysics
 
         [HarmonyPrefix, HarmonyPatch(typeof(ControllingHelm), nameof(ControllingHelm.RotateLeft))]
         // Remap rotate left to thrust left
-        static bool RotateLeft(ControllingHelm __instance, InputAction.CallbackContext obj)
+        static bool RotateLeft(ControllingHelm __instance, ref InputAction.CallbackContext obj)
         {
             __instance._helmInputNeg.x = obj.action.ReadValue<float>();
             __instance._helm.SetTranslationInput(__instance._helmInputPos - __instance._helmInputNeg);
@@ -351,7 +326,7 @@ namespace VCSpacePhysics
 
         [HarmonyPrefix, HarmonyPatch(typeof(ControllingHelm), nameof(ControllingHelm.RotateRight))]
         // Remap rotate right to thrust right
-        static bool RotateRight(ControllingHelm __instance, InputAction.CallbackContext obj)
+        static bool RotateRight(ControllingHelm __instance, ref InputAction.CallbackContext obj)
         {
             __instance._helmInputPos.x = obj.action.ReadValue<float>();
             __instance._helm.SetTranslationInput(__instance._helmInputPos - __instance._helmInputNeg);
@@ -417,10 +392,11 @@ namespace VCSpacePhysics
             }
         }
 
+        private static FieldInfo inputSubscribedinfo = AccessTools.Field(typeof(ControllingHelm), nameof(ControllingHelm.DisableInput));
         [HarmonyPrefix, HarmonyPatch(typeof(ControllingHelm), nameof(ControllingHelm.DisableInput))]
         static void ControllingHelmDisableInput(ControllingHelm __instance)
         {
-            if (__instance._localPlayer.IsMine && __instance.inputSubscribed)
+            if (__instance._localPlayer.IsMine && (bool)inputSubscribedinfo.GetValue(__instance))
             {
                 var helmExtras = __instance._helm.gameObject.GetComponent<HelmExtras>();
                 if (helmExtras != null)
@@ -518,7 +494,6 @@ namespace VCSpacePhysics
         }
 
     }
-
     class ThrusterCleanupBehaviour : MonoBehaviour
     {
         private ThrusterEffectPlayerInput thrusterEffect;
@@ -789,3 +764,4 @@ namespace VCSpacePhysics
         }
     }
 }
+#pragma warning restore CS0618
