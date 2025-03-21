@@ -392,7 +392,7 @@ namespace VCSpacePhysics
             }
         }
 
-        private static FieldInfo inputSubscribedinfo = AccessTools.Field(typeof(ControllingHelm), nameof(ControllingHelm.DisableInput));
+        private static FieldInfo inputSubscribedinfo = AccessTools.Field(typeof(ControllingHelm), "inputSubscribed");
         [HarmonyPrefix, HarmonyPatch(typeof(ControllingHelm), nameof(ControllingHelm.DisableInput))]
         static void ControllingHelmDisableInput(ControllingHelm __instance)
         {
