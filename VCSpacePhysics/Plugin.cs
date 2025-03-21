@@ -1,4 +1,4 @@
-using BepInEx;
+﻿using BepInEx;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -473,6 +473,12 @@ namespace VCSpacePhysics
             __instance.UpdateCorrectionSpeed();
             __instance.SimulatePhysicsScene();
 
+            return false;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(PlayerShipMovementAudio), nameof(PlayerShipMovementAudio.Update))]
+        static bool PlayerShipMovementAudioUpdate(PlayerShipMovementAudio __instance)
+        {
             return false;
         }
 
