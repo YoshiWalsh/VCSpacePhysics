@@ -31,6 +31,9 @@
       <Reference Include="Cinemachine">
         <HintPath>..\..\..\SecondarySteamLibrary\steamapps\common\Void Crew\Void Crew_Data\Managed\Cinemachine.dll</HintPath>
       </Reference>
+      <Reference Include="FMODUnity">
+        <HintPath>..\..\..\SecondarySteamLibrary\steamapps\common\Void Crew\Void Crew_Data\Managed\FMODUnity.dll</HintPath>
+      </Reference>
       <Reference Include="Opsive.Shared">
         <HintPath>..\..\..\SecondarySteamLibrary\steamapps\common\Void Crew\Void Crew_Data\Managed\Opsive.Shared.dll</HintPath>
       </Reference>

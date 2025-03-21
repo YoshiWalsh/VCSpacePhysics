@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -24,6 +24,8 @@ using Opsive.UltimateCharacterController.Character.Identifiers;
 using CG.Client.Player;
 using CG.Game.Player;
 using UnityEngine.UIElements;
+using FMODUnity;
+using Cinemachine.Utility;
 
 namespace VCSpacePhysics
 {
@@ -298,16 +300,16 @@ namespace VCSpacePhysics
         {
             var helmExtras = __instance.gameObject.AddComponent<HelmExtras>();
 
-            var pitchYawUIGameObject = new GameObject();
-            pitchYawUIGameObject.transform.SetParent(__instance.transform);
-            var pitchYawUI = pitchYawUIGameObject.AddComponent<PitchYawUI>();
-            pitchYawUI.helmExtras = helmExtras;
+            var yawPitchUIGameObject = new GameObject();
+            yawPitchUIGameObject.transform.SetParent(__instance.transform);
+            var yawPitchUI = yawPitchUIGameObject.AddComponent<YawPitchUI>();
+            yawPitchUI.helmExtras = helmExtras;
 
-            var externalPitchYawUIGameObject = new GameObject();
-            externalPitchYawUIGameObject.transform.SetParent(__instance.ExternalCamera.thirdPersonShipCamera.transform);
-            var externalPitchYawUI = externalPitchYawUIGameObject.AddComponent<PitchYawUI>();
-            externalPitchYawUI.type = PitchYawUI.PitchYawUIType.Camera;
-            externalPitchYawUI.helmExtras = helmExtras;
+            var externalYawPitchUIGameObject = new GameObject();
+            externalYawPitchUIGameObject.transform.SetParent(__instance.ExternalCamera.thirdPersonShipCamera.transform);
+            var externalYawPitchUI = externalYawPitchUIGameObject.AddComponent<YawPitchUI>();
+            externalYawPitchUI.type = YawPitchUI.YawPitchUIType.Camera;
+            externalYawPitchUI.helmExtras = helmExtras;
 
             return true;
         }
@@ -363,14 +365,9 @@ namespace VCSpacePhysics
             if (__instance.IsPowered && __instance.photonView.AmOwner)
             {
                 Vector3 a = __instance.InputSum(__instance.TorqueInputs);
-                //var torquePower = new Vector3(0.03f, __instance.EngineTorquePower.y, 0.03f);
-                var torquePower = new Vector3(__instance.EngineTorquePower.y, __instance.EngineTorquePower.y, __instance.EngineTorquePower.y); // TODO Needs to use boost
-                Vector3 a2 = ((!__instance.boosted) ? Vector3.Scale(a, torquePower) : Vector3.Scale(a, __instance.BoosterTorquePower));
-                a2 = Vector3.Scale(a2, new Vector3(__instance.YawPower.Value, __instance.YawPower.Value, __instance.YawPower.Value)) * __instance.EnginePower.Value;
-                //a2 = Vector3.Scale(a2, new Vector3(0.03f, __instance.YawPower.Value, 0.03f)) * __instance.EnginePower.Value;
-
-                //var worldTorque = __instance.ShipMovementController.gameObject.transform.TransformDirection(a2);
-                __instance.ShipMovementController.AddTorque(a2 * Time.fixedDeltaTime, __instance.userInputsTorque);
+                var appliedPower = !__instance.boosted ? __instance.EngineTorquePower.y : __instance.BoosterTorquePower.y;
+                var torque = a * appliedPower * __instance.YawPower.Value * __instance.EnginePower.Value;
+                __instance.ShipMovementController.AddTorque(torque * Time.fixedDeltaTime, __instance.userInputsTorque);
             }
 
             return false;
@@ -414,9 +411,9 @@ namespace VCSpacePhysics
             if(__instance._localPlayer.IsMine)
             {
                 var helmExtras = __instance._helm.gameObject.GetComponent<HelmExtras>();
-                __instance.InputActionReferences.Fire1.action.performed += helmExtras.TogglePitchYaw;
-                __instance.InputActionReferences.Fire1.action.canceled += helmExtras.TogglePitchYaw;
-                helmExtras.DisablePitchYaw();
+                __instance.InputActionReferences.Fire1.action.performed += helmExtras.ToggleYawPitch;
+                __instance.InputActionReferences.Fire1.action.canceled += helmExtras.ToggleYawPitch;
+                helmExtras.DisableYawPitch();
             }
         }
 
@@ -428,9 +425,9 @@ namespace VCSpacePhysics
                 var helmExtras = __instance._helm.gameObject.GetComponent<HelmExtras>();
                 if (helmExtras != null)
                 {
-                    __instance.InputActionReferences.Fire1.action.performed -= helmExtras.TogglePitchYaw;
-                    __instance.InputActionReferences.Fire1.action.canceled -= helmExtras.TogglePitchYaw;
-                    helmExtras.DisablePitchYaw();
+                    __instance.InputActionReferences.Fire1.action.performed -= helmExtras.ToggleYawPitch;
+                    __instance.InputActionReferences.Fire1.action.canceled -= helmExtras.ToggleYawPitch;
+                    helmExtras.DisableYawPitch();
                 }
             }
         }
@@ -478,6 +475,42 @@ namespace VCSpacePhysics
 
             return false;
         }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(Helm), nameof(Helm.RotateTowardsPerFrame))]
+        static bool HelmRotateTowardsPerFrame(Helm __instance, out bool __result, Vector3 pos)
+        {
+            var relativeDirection = __instance.Ship.gameObject.transform.InverseTransformDirection(pos).normalized; // Work in ship's local space instead of world space
+            Vector2 totalYawAndPitchAngle = relativeDirection.ProjectOntoPlane(Vector3.forward) * 90f; // Find the direction and distance to the destination in 2D space (pitch/yaw)
+            if(relativeDirection.z < 0f) // If the destination is directly behind the ship, the projected will be low but we should turn fast
+            {
+                if(totalYawAndPitchAngle.magnitude == 0f)
+                {
+                    totalYawAndPitchAngle.y = 180f; // Check for if the destination is literally exactly behind the ship (default to pitching up)
+                } else
+                {
+                    totalYawAndPitchAngle = totalYawAndPitchAngle.normalized * (180f - totalYawAndPitchAngle.magnitude);
+                }
+            }
+            var yawAndPitchInput = totalYawAndPitchAngle.normalized * Mathf.Min(totalYawAndPitchAngle.magnitude / 30f, 1f);
+
+            if (totalYawAndPitchAngle.magnitude <= 5f)
+            {
+                __instance.Engine.SetInput(Vector3.zero, Vector3.zero);
+                __instance.SlowStop();
+                __result = true;
+                return false;
+            }
+            if (!__instance.IsPowered)
+            {
+                __result = false;
+                return false;
+            }
+            Vector3 torque = new Vector3(-yawAndPitchInput.y, yawAndPitchInput.x, 0f);
+            __instance.Engine.SetInput(Vector3.zero, torque);
+            __result = false;
+            return false;
+        }
+
     }
 
     class ThrusterCleanupBehaviour : MonoBehaviour
@@ -498,15 +531,15 @@ namespace VCSpacePhysics
     class HelmExtras : MonoBehaviour
     {
         public static GameObject playerFirstPersonCamera;
-        const float maximumPitchYawMagnitude = 1.2f;
+        const float maximumYawPitchMagnitude = 1.2f;
         public Vector3 _rotateInputPos = Vector3.zero;
         public Vector3 _rotateInputNeg = Vector3.zero;
         public Helm _helm;
-        public Vector2 rawPitchYaw = Vector2.zero;
-        public Vector2 pitchYawInput = Vector2.zero;
+        public Vector2 rawYawPitch = Vector2.zero;
+        public Vector2 yawPitchInput = Vector2.zero;
         private float mouseMagnitudeScaling = 0.03f;
         private bool thirdPerson = false;
-        public bool controllingPitchYaw = false;
+        public bool controllingYawPitch = false;
         private Vector2? firstPersonUIPlayerLooking;
 
         public void Awake()
@@ -530,46 +563,54 @@ namespace VCSpacePhysics
             thirdPerson = cameraType == ShipExternalCamera.CameraType.ThirdPersonCamera;
             if(thirdPerson)
             {
-                var thirdPersonUI = PitchYawUI._instances.Find(i => i.type == PitchYawUI.PitchYawUIType.Spatial);
+                var thirdPersonUI = YawPitchUI._instances.Find(i => i.type == YawPitchUI.YawPitchUIType.Spatial);
                 thirdPersonUI.helmExtras = this;
             }
         }
 
         public void FixedUpdate()
         {
+            if(_helm._pilotingLocked)
+            {
+                var torque = _helm.Engine.PlayerInputTorque;
+                rawYawPitch = new Vector2(torque.y, -torque.x);
+                yawPitchInput = rawYawPitch.magnitude < 1f ? rawYawPitch : rawYawPitch.normalized;
+                return;
+            }
+
             if(!thirdPerson)
             {
-                firstPersonUIPlayerLooking = GetPitchYawUILookingPoint();
+                firstPersonUIPlayerLooking = GetYawPitchUILookingPoint();
             }
-            if(controllingPitchYaw)
+            if(controllingYawPitch)
             {
                 if (thirdPerson)
                 {
-                    rawPitchYaw += _helm._mouseDelta * mouseMagnitudeScaling;
-                    if (rawPitchYaw.magnitude > maximumPitchYawMagnitude)
+                    rawYawPitch += _helm._mouseDelta * mouseMagnitudeScaling;
+                    if (rawYawPitch.magnitude > maximumYawPitchMagnitude)
                     {
-                        rawPitchYaw = rawPitchYaw.normalized * maximumPitchYawMagnitude;
+                        rawYawPitch = rawYawPitch.normalized * maximumYawPitchMagnitude;
                     }
                 } else
                 {
                     
                     if(firstPersonUIPlayerLooking != null)
                     {
-                        rawPitchYaw = (Vector2)firstPersonUIPlayerLooking;
+                        rawYawPitch = (Vector2)firstPersonUIPlayerLooking;
                     }
                 }
             }
-            pitchYawInput = rawPitchYaw.magnitude < 1f ? rawPitchYaw : rawPitchYaw.normalized;
-            _rotateInputPos.x = pitchYawInput.y; // Vertical movements pitch the ship, which is applied around the x axis
-            _rotateInputPos.y = -pitchYawInput.x; // Horizontal movements yaw the ship, which is applied around the y axis
+            yawPitchInput = rawYawPitch.magnitude < 1f ? rawYawPitch : rawYawPitch.normalized;
+            _rotateInputPos.x = yawPitchInput.y; // Vertical movements pitch the ship, which is applied around the x axis
+            _rotateInputPos.y = -yawPitchInput.x; // Horizontal movements yaw the ship, which is applied around the y axis
             SetRotationInput(_rotateInputNeg - _rotateInputPos);
         }
 
-        private Vector2? GetPitchYawUILookingPoint()
+        private Vector2? GetYawPitchUILookingPoint()
         {
-            var pitchYawBridgeUI = PitchYawUI._instances.Find(i => i.type == PitchYawUI.PitchYawUIType.Spatial);
+            var yawPitchBridgeUI = YawPitchUI._instances.Find(i => i.type == YawPitchUI.YawPitchUIType.Spatial);
             var cameraRay = new Ray(playerFirstPersonCamera.transform.position, playerFirstPersonCamera.transform.forward);
-            return pitchYawBridgeUI.GetLookingPosition(cameraRay);
+            return yawPitchBridgeUI.GetLookingPosition(cameraRay);
         }
 
         public void SetRotationInput(Vector3 rotationInput)
@@ -592,21 +633,21 @@ namespace VCSpacePhysics
             }
         }
 
-        public void TogglePitchYaw(InputAction.CallbackContext obj)
+        public void ToggleYawPitch(InputAction.CallbackContext obj)
         {
             var clicked = obj.action.ReadValue<float>();
             if(clicked < 0.5f)
             {
-                DisablePitchYaw();
+                DisableYawPitch();
             } else
             {
-                TryEnablePitchYaw();
+                TryEnableYawPitch();
             }
         }
 
-        public void TryEnablePitchYaw()
+        public void TryEnableYawPitch()
         {
-            if(controllingPitchYaw)
+            if(controllingYawPitch)
             {
                 return;
             }
@@ -619,27 +660,27 @@ namespace VCSpacePhysics
                 }
             }
 
-            controllingPitchYaw = true;
+            controllingYawPitch = true;
         }
 
-        public void DisablePitchYaw()
+        public void DisableYawPitch()
         {
-            controllingPitchYaw = false;
-            rawPitchYaw = Vector2.zero;
+            controllingYawPitch = false;
+            rawYawPitch = Vector2.zero;
         }
     }
 
-    class PitchYawUI : MonoBehaviour
+    class YawPitchUI : MonoBehaviour
     {
-        public enum PitchYawUIType
+        public enum YawPitchUIType
         {
             Spatial,
             Camera
         }
 
-        public static List<PitchYawUI> _instances = new List<PitchYawUI>();
+        public static List<YawPitchUI> _instances = new List<YawPitchUI>();
 
-        public PitchYawUIType type = PitchYawUIType.Spatial;
+        public YawPitchUIType type = YawPitchUIType.Spatial;
 
         public HelmExtras helmExtras;
         
@@ -700,13 +741,13 @@ namespace VCSpacePhysics
 
             switch (type)
             {
-                case PitchYawUIType.Spatial:
+                case YawPitchUIType.Spatial:
                     IsVisible = helmExtras._helm.IsPowered;
                     gameObject.transform.localPosition = new Vector3(0, 1.75f, -2.2f); // Not necessary to do every frame at all, I just wanted this code in the same place as the bit below.
                     break;
-                case PitchYawUIType.Camera:
+                case YawPitchUIType.Camera:
                 default:
-                    IsVisible = helmExtras._helm.IsPowered && helmExtras.controllingPitchYaw;
+                    IsVisible = helmExtras._helm.IsPowered && helmExtras.controllingYawPitch;
                     gameObject.transform.localPosition = new Vector3(0, 0, 1.075f); // For some reason this doesn't keep its initial position. Putting it back every frame is overkill but it's an easy fix.
                     break;
             }
@@ -719,7 +760,7 @@ namespace VCSpacePhysics
                 return;
             }
 
-            ((RectTransform)innerCircle.transform).anchoredPosition = helmExtras.pitchYawInput * outerCircleDiameter / 2f;
+            ((RectTransform)innerCircle.transform).anchoredPosition = helmExtras.yawPitchInput * outerCircleDiameter / 2f;
         }
 
         public void OnDestroy()
