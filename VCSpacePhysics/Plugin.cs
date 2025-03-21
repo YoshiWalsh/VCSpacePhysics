@@ -1,4 +1,4 @@
-using BepInEx;
+﻿using BepInEx;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -433,6 +433,50 @@ namespace VCSpacePhysics
                     helmExtras.DisablePitchYaw();
                 }
             }
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(MovingSpacePlatform), nameof(MovingSpacePlatform.FixedUpdate))]
+        static bool MovingSpacePlatformFixedUpdate(MovingSpacePlatform __instance)
+        {
+            var playerShip = __instance.gameObject.GetComponent<PlayerShip>();
+            if(playerShip == null)
+            {
+                return true; // Not player ship, use default behaviour
+            }
+
+            __instance.PreMove();
+            Vector3 position = __instance.SyncedTransform.position;
+            Quaternion rotation = __instance.SyncedTransform.rotation;
+            float fixedDeltaTime = Time.fixedDeltaTime;
+            var rotationVector = __instance.AngularVelocity * fixedDeltaTime;
+            Quaternion yawQuaternion = Quaternion.AngleAxis(rotationVector.y, __instance.SyncedTransform.up);
+            Quaternion pitchQuaternion = Quaternion.AngleAxis(rotationVector.x, __instance.SyncedTransform.right);
+            Quaternion rollQuaternion = Quaternion.AngleAxis(rotationVector.z, __instance.SyncedTransform.forward);
+            var rotationQuaternion = rollQuaternion * pitchQuaternion * yawQuaternion; // Multiplication order is z x y (Euler rotation to quaternion)
+            __instance.Rotation = rotationQuaternion * __instance.Rotation;
+            __instance.CorrectedRot = rotationQuaternion * __instance.CorrectedRot;
+            Vector3 vector = __instance.Velocity * fixedDeltaTime;
+            __instance.ApplyFriction(fixedDeltaTime);
+            __instance.Position += vector;
+            __instance.CorrectedPosition += vector;
+            __instance.Position = Vector3.MoveTowards(__instance.Position, __instance.CorrectedPosition, fixedDeltaTime * __instance.PositionCorrectionSpeed);
+            __instance.Rotation = Quaternion.RotateTowards(__instance.Rotation, __instance.CorrectedRot, __instance.RotationCorrectionSpeed * fixedDeltaTime);
+            __instance.positionDelta = __instance.Position - __instance.SyncedTransform.position;
+            __instance.rotationDelta = Quaternion.Inverse(__instance.SyncedTransform.rotation) * __instance.Rotation;
+            if (__instance.PositionDelta.magnitude > __instance.TeleportDistance + __instance.TeleportSpeedAdjustMult * __instance.Velocity.magnitude || Quaternion.Angle(__instance.CorrectedRot, __instance.SyncedTransform.rotation) > __instance.TeleportMaxAngleDelta)
+            {
+                __instance.positionDelta = __instance.CorrectedPosition - position;
+                __instance.rotationDelta = Quaternion.Inverse(rotation) * __instance.CorrectedRot;
+                __instance.Position = __instance.CorrectedPosition;
+                __instance.Rotation = __instance.CorrectedRot;
+            }
+            __instance.Rotation = __instance.Rotation.normalized;
+            __instance.syncedRigidBody.MoveRotation(__instance.Rotation);
+            __instance.syncedRigidBody.MovePosition(__instance.Position);
+            __instance.UpdateCorrectionSpeed();
+            __instance.SimulatePhysicsScene();
+
+            return false;
         }
     }
 
