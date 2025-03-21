@@ -23,7 +23,6 @@ public class Circle : Graphic
         return vbo;
     }
 
-    #pragma warning disable CS0672 // Suppress obsolete warning
     protected override void OnPopulateMesh(Mesh toFill)
     {
         float outerRadius = -rectTransform.pivot.x * rectTransform.rect.width;
@@ -82,5 +81,4 @@ public class Circle : Graphic
         }
 
     }
-    #pragma warning restore CS0672
 }

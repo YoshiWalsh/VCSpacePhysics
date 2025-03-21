@@ -25,7 +25,6 @@ using CG.Game.Player;
 using UnityEngine.UIElements;
 using FMODUnity;
 using Cinemachine.Utility;
-#pragma warning disable CS0612 // Suppress obsolete warning
 using static VFX.ThrusterEffectPlayerInput;
 
 namespace VCSpacePhysics
@@ -764,4 +763,3 @@ namespace VCSpacePhysics
         }
     }
 }
-#pragma warning restore CS0618
