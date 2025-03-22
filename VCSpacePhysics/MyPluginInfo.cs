@@ -9,8 +9,8 @@ namespace VCSpacePhysics
         public const string USERS_PLUGIN_NAME = "Space Physics";
         public const string PLUGIN_VERSION = "1.0.0";
         public const string PLUGIN_DESCRIPTION = "Adds more realistic space physics to Void Crew";
-        public const string PLUGIN_ORIGINAL_AUTHOR = "Yoshie";
-        public const string PLUGIN_AUTHORS = "Yoshie";
+        public const string PLUGIN_ORIGINAL_AUTHOR = "YoshiWalsh";
+        public const string PLUGIN_AUTHORS = "YoshiWalsh";
         public const string PLUGIN_THUNDERSTORE_ID = "";
     }
 }
