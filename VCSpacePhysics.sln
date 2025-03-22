@@ -1,14 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.8.34330.188
+VisualStudioVersion = 17.8.34525.116
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VCSpacePhysics", "VCSpacePhysics\VCSpacePhysics.csproj", "{1AA3AA60-10C6-46A5-A820-CB213F000C1A}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E424A42F-1D77-414E-9329-EB90DF460514}"
-	ProjectSection(SolutionItems) = preProject
-		VCSpacePhysics\.editorconfig = VCSpacePhysics\.editorconfig
-	EndProjectSection
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VCSpacePhysics", "VCSpacePhysics\VCSpacePhysics.csproj", "{B02CD0E9-743E-4158-8B8D-23D15F5EFF7A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -16,15 +11,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{1AA3AA60-10C6-46A5-A820-CB213F000C1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1AA3AA60-10C6-46A5-A820-CB213F000C1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1AA3AA60-10C6-46A5-A820-CB213F000C1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1AA3AA60-10C6-46A5-A820-CB213F000C1A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B02CD0E9-743E-4158-8B8D-23D15F5EFF7A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B02CD0E9-743E-4158-8B8D-23D15F5EFF7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B02CD0E9-743E-4158-8B8D-23D15F5EFF7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B02CD0E9-743E-4158-8B8D-23D15F5EFF7A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {1588C01A-1055-41E5-9A7F-C83D15AA4111}
+		SolutionGuid = {ACBD2934-4D54-41F9-97E8-35199731AC7D}
 	EndGlobalSection
 EndGlobal
