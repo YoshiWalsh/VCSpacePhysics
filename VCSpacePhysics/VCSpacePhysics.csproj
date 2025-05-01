@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>netstandard2.1</TargetFramework>
@@ -37,7 +37,7 @@
       <Reference Include="Opsive.Shared">
         <HintPath>..\..\..\SecondarySteamLibrary\steamapps\common\Void Crew\Void Crew_Data\Managed\Opsive.Shared.dll</HintPath>
       </Reference>
-      <Reference Include="Opsive.UltimateCharacterController">
+      <Reference Include="Opsive.UltimateCharacterController" Publicize="true">
         <HintPath>..\..\..\SecondarySteamLibrary\steamapps\common\Void Crew\Void Crew_Data\Managed\Opsive.UltimateCharacterController.dll</HintPath>
       </Reference>
       <Reference Include="PhotonUnityNetworking">

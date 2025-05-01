@@ -26,6 +26,9 @@ using CG.Game.Player;
 using UnityEngine.UIElements;
 using FMODUnity;
 using Cinemachine.Utility;
+using Opsive.UltimateCharacterController.Character;
+using Opsive.UltimateCharacterController.FirstPersonController.Camera.ViewTypes;
+using Opsive.UltimateCharacterController.Character.Abilities;
 
 namespace VCSpacePhysics
 {
@@ -517,6 +520,110 @@ namespace VCSpacePhysics
             return false;
         }
 
+
+        [HarmonyPrefix, HarmonyPatch(typeof(CustomCharacterLocomotion), nameof(CustomCharacterLocomotion.Up), MethodType.Getter)]
+        static bool CustomCharacterLocomotionUp(CustomCharacterLocomotion __instance, out Vector3 __result)
+        {
+            __result = __instance.m_Up; // TODO: this doesn't seem to do anything
+            return false;
+        }
+
+        [HarmonyPostfix, HarmonyPatch(typeof(CustomCharacterLocomotion), nameof(CustomCharacterLocomotion.SetMovingPlatform))]
+        static void CustomCharacterLocomotionSetMovingPlatform(CustomCharacterLocomotion __instance, Transform platform, bool platformOverride = true)
+        {
+            __instance.AlignToUpDirection = !IsPlayerSpaceborne(__instance);
+        }
+
+        [HarmonyPostfix, HarmonyPatch(typeof(CustomCharacterLocomotion), nameof(CustomCharacterLocomotion.Update))]
+        static void CustomCharacterLocomotionUpdate(CustomCharacterLocomotion __instance)
+        {
+            if (IsPlayerFlying(__instance))
+            {
+                __instance.transform.rotation = __instance.LookSource.Transform.rotation;
+            }
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(CharacterLocomotion), nameof(CharacterLocomotion.UpdateMovingPlaformDisconnectMovement))]
+        static bool CharacterLocomotionUpdateMovingPlaformDisconnectMovement()
+        {
+            return false;
+        }
+
+        [HarmonyPostfix, HarmonyPatch(typeof(FirstPerson), nameof(FirstPerson.Rotate))]
+        static void FirstPersonRotate(FirstPerson __instance, float horizontalMovement, float verticalMovement, bool immediateUpdate)
+        {
+            if (IsPlayerFlying(__instance.m_CharacterLocomotion))
+            {
+                var rotation = Quaternion.AngleAxis(__instance.m_Pitch, __instance.m_CharacterLocomotion.transform.right);
+                __instance.m_BaseRotation = rotation * __instance.m_BaseRotation;
+                __instance.m_Pitch = 0f;
+
+                var baseRotation = __instance.m_BaseRotation;
+                var lookRotation = Quaternion.Euler(__instance.m_Pitch, __instance.m_Yaw, 0f);
+                var totalRotation = baseRotation * lookRotation;
+                __instance.m_CharacterLocomotion.transform.rotation = totalRotation;
+
+            }
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(AlignToPlatformGravityZone), nameof(AlignToPlatformGravityZone.UpdateRotation))]
+        static bool AlignToPlatformGravityZoneUpdateRotation(AlignToPlatformGravityZone __instance)
+        {
+            if(IsPlayerFlying(__instance.m_CharacterLocomotion))
+            {
+                return false;
+            }
+            return true;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(AlignToGravityZone), nameof(AlignToGravityZone.UpdateRotation))]
+        static bool AlignToGravityZoneUpdateRotation(AlignToGravityZone __instance)
+        {
+            if (IsPlayerFlying(__instance.m_CharacterLocomotion))
+            {
+                return false;
+            }
+            return true;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(AlignToGround), nameof(AlignToGround.Update))]
+        static bool AlignToGroundUpdate(AlignToGround __instance)
+        {
+            if (IsPlayerFlying(__instance.m_CharacterLocomotion))
+            {
+                return false;
+            }
+            return true;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(CustomFirstPersonCombat), nameof(CustomFirstPersonCombat.Rotate))]
+        static bool CustomFirstPersonCombatRotate(CustomFirstPersonCombat __instance)
+        {
+            __instance.m_UseLocalRotation = false;
+            __instance.lockedRelativeLocalRotation = false;
+            return true;
+        }
+
+        private static bool IsPlayerJetpackEquipped(UltimateCharacterLocomotion character)
+        {
+            var playerGameObject = character.gameObject;
+            var jetpack = playerGameObject.GetComponentInChildren<JetpackItem>();
+            if(jetpack == null)
+            {
+                return false;
+            }
+            return jetpack.VisibleObjectActive;
+        }
+
+        private static bool IsPlayerSpaceborne(UltimateCharacterLocomotion character)
+        {
+            return !character.UseGravity && !character.Grounded;
+        }
+
+        private static bool IsPlayerFlying(UltimateCharacterLocomotion character)
+        {
+            return IsPlayerJetpackEquipped(character) && IsPlayerSpaceborne(character);
+        }
     }
 
     class ThrusterCleanupBehaviour : MonoBehaviour
