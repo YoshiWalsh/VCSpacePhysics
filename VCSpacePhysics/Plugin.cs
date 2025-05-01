@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -592,7 +592,7 @@ namespace VCSpacePhysics
             {
                 if (thirdPerson)
                 {
-                    rawYawPitch += _helm._mouseDelta * mouseMagnitudeScaling;
+                    rawYawPitch += _helm._controllerDelta * mouseMagnitudeScaling;
                     if (rawYawPitch.magnitude > maximumYawPitchMagnitude)
                     {
                         rawYawPitch = rawYawPitch.normalized * maximumYawPitchMagnitude;
