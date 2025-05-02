@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using Opsive.UltimateCharacterController.Character.Abilities;
 using Opsive.UltimateCharacterController.Character;
 using Opsive.UltimateCharacterController.FirstPersonController.Camera.ViewTypes;
@@ -41,15 +41,6 @@ namespace VCSpacePhysics.EVA.Controls
                 __instance.m_CharacterLocomotion.transform.rotation = totalRotation;
 
             }
-        }
-
-        // TODO: I don't think this does anything. Test if it can be removed.
-        [HarmonyPrefix, HarmonyPatch(typeof(CustomFirstPersonCombat), nameof(CustomFirstPersonCombat.Rotate))]
-        static bool CustomFirstPersonCombatRotate(CustomFirstPersonCombat __instance)
-        {
-            __instance.m_UseLocalRotation = false;
-            __instance.lockedRelativeLocalRotation = false;
-            return true;
         }
     }
 }

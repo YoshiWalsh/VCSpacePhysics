@@ -23,14 +23,6 @@ namespace VCSpacePhysics.EVA.Physics
         }
 
         // TODO: I don't think this does anything. Test if it can be removed.
-        [HarmonyPrefix, HarmonyPatch(typeof(CustomCharacterLocomotion), nameof(CustomCharacterLocomotion.Up), MethodType.Getter)]
-        static bool CustomCharacterLocomotionUp(CustomCharacterLocomotion __instance, out Vector3 __result)
-        {
-            __result = __instance.m_Up; // TODO: this doesn't seem to do anything
-            return false;
-        }
-
-        // TODO: I don't think this does anything. Test if it can be removed.
         [HarmonyPostfix, HarmonyPatch(typeof(CustomCharacterLocomotion), nameof(CustomCharacterLocomotion.Update))]
         static void CustomCharacterLocomotionUpdate(CustomCharacterLocomotion __instance)
         {

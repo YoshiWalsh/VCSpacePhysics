@@ -1,4 +1,5 @@
-﻿using Opsive.UltimateCharacterController.Character;
+﻿using CG.Game.Player;
+using Opsive.UltimateCharacterController.Character;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -9,18 +10,14 @@ namespace VCSpacePhysics.EVA
     {
         public static bool IsPlayerJetpackEquipped(UltimateCharacterLocomotion character)
         {
-            var playerGameObject = character.gameObject;
-            var jetpack = playerGameObject.GetComponentInChildren<JetpackItem>();
-            if (jetpack == null)
-            {
-                return false;
-            }
-            return jetpack.VisibleObjectActive;
+            var player = character.GetComponent<Player>();
+            return player.HasJetpack;
         }
 
         public static bool IsPlayerSpaceborne(UltimateCharacterLocomotion character)
         {
-            return !character.UseGravity && !character.Grounded;
+            var customLocomotion = (CustomCharacterLocomotion) character;
+            return !character.UseGravity && !character.Grounded && !customLocomotion.DisableMovement;
         }
 
         public static bool IsPlayerFlying(UltimateCharacterLocomotion character)

@@ -59,9 +59,6 @@ it doesn't align with my vision.
 
 ## Known Bugs
 
-- New bugs in the first-person pilot view: (not sure if caused by 1.1.0 update or EVA camera unlocking changes)
-	- When the ship is rotated to certain angles, the limits of the camera are not applied correctly so the player may not be able to look in the expected directions. (I think this only affects pitch?)
-	- Sometimes when pitching the ship the player's view also pitches (might be related to previous issue)
 - When an EVA player leaves the ship's hull, sometimes a bit of rotation or momentum is applied to their character
 - The automatic exit vector alignment doesn't account for angular momentum. This can cause it to overshoot the vector and slowly spiral to alignment, which takes a long time.
 - The player's pitch/roll during EVA uses the player's feet as the pivot point. This looks goofy.
