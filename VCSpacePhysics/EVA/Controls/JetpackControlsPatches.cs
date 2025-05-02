@@ -1,4 +1,4 @@
-using HarmonyLib;
+﻿using HarmonyLib;
 using Opsive.UltimateCharacterController.Character.Abilities;
 using Opsive.UltimateCharacterController.Character;
 using Opsive.UltimateCharacterController.FirstPersonController.Camera.ViewTypes;
@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using CG.Game.Player;
 
 namespace VCSpacePhysics.EVA.Controls
 {
@@ -17,9 +18,27 @@ namespace VCSpacePhysics.EVA.Controls
         private static void RotatePlayerPositionAroundCenterOfGravity(CharacterLocomotion character, Quaternion rotation)
         {
             Vector3 characterCOGWorldspace = character.gameObject.transform.TransformPoint(CenterOfGravityOffset);
-            Vector3 currentRootPositionRelativeToCOG = character.gameObject.transform.position - characterCOGWorldspace;
+            Vector3 currentCharacterRootPosition = character.gameObject.transform.position;
+            Vector3 currentRootPositionRelativeToCOG = currentCharacterRootPosition - characterCOGWorldspace;
             Vector3 newRootPositionRelativeToCOG = rotation * currentRootPositionRelativeToCOG;
-            character.gameObject.transform.position = newRootPositionRelativeToCOG + characterCOGWorldspace;
+            Vector3 newCharacterRootPosition = newRootPositionRelativeToCOG + characterCOGWorldspace;
+
+            //var storedDesiredMovement = character.DesiredMovement;
+            //var storedInstantMove = character.InstantRigidbodyMove;
+            //var storedLocalDesiredMovement = character.LocalDesiredMovement;
+            //var storedRootMotionDeltaPosition = character.RootMotionDeltaPosition;
+
+            //character.DesiredMovement = newCharacterRootPosition - currentCharacterRootPosition;
+            //character.InstantRigidbodyMove = true;
+            //character.LocalDesiredMovement = Vector3.zero;
+            //character.ApplyPosition();
+
+            //character.DesiredMovement = storedDesiredMovement;
+            //character.InstantRigidbodyMove = storedInstantMove;
+            //character.LocalDesiredMovement =  storedLocalDesiredMovement;
+            //character.RootMotionDeltaPosition =  storedRootMotionDeltaPosition;
+
+            character.Rigidbody.position = character.gameObject.transform.position = newCharacterRootPosition;
         }
 
         [HarmonyPostfix, HarmonyPatch(typeof(FirstPerson), nameof(FirstPerson.Rotate))]
