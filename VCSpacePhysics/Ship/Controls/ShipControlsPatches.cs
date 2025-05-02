@@ -112,5 +112,17 @@ namespace VCSpacePhysics.Ship.Controls
         {
             HelmExtras.playerFirstPersonCamera = __instance.gameObject;
         }
+
+        // Since the 1.1.0 update, mouse movements are no longer stored in Helm._mouseDelta. Instead,
+        // Helm._controllerDelta exclusively handles gamepad inputs. For this reason we need
+        // to track mouse movements ourselves.
+        // This function only deals with mouse movements, there's a separate
+        // RotateExternalCameraController function that handles gamepad-driven rotation.
+        [HarmonyPostfix, HarmonyPatch(typeof(Helm), nameof(Helm.RotateExternalCamera))]
+        static void HelmRotateExternalCamera(Helm __instance, Vector2 delta)
+        {
+            var helmExtras = __instance.gameObject.GetComponent<HelmExtras>();
+            helmExtras.AddMouseMovement(delta);
+        }
     }
 }

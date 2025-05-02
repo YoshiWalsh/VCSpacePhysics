@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine.InputSystem;
 using UnityEngine;
+using CG;
+using CG.Input;
 
 namespace VCSpacePhysics.Ship.Controls
 {
@@ -16,6 +18,7 @@ namespace VCSpacePhysics.Ship.Controls
         public Vector3 _rotateInputPos = Vector3.zero;
         public Vector3 _rotateInputNeg = Vector3.zero;
         public Helm _helm;
+        private Vector2 mouseDelta = Vector2.zero;
         public Vector2 rawYawPitch = Vector2.zero;
         public Vector2 yawPitchInput = Vector2.zero;
         private float mouseMagnitudeScaling = 0.03f;
@@ -49,6 +52,15 @@ namespace VCSpacePhysics.Ship.Controls
             }
         }
 
+        public void AddMouseMovement(Vector2 delta)
+        {
+            if(!controllingYawPitch)
+            {
+                return;
+            }
+            mouseDelta += delta;
+        }
+
         public void FixedUpdate()
         {
             if (_helm._pilotingLocked)
@@ -67,7 +79,13 @@ namespace VCSpacePhysics.Ship.Controls
             {
                 if (thirdPerson)
                 {
-                    rawYawPitch += _helm._controllerDelta * mouseMagnitudeScaling;
+                    if (ServiceBase<InputService>.Instance.UsingGamepad)
+                    {
+                        rawYawPitch += _helm._controllerDelta * mouseMagnitudeScaling;
+                    } else
+                    {
+                        rawYawPitch += mouseDelta * mouseMagnitudeScaling;
+                    }
                     if (rawYawPitch.magnitude > maximumYawPitchMagnitude)
                     {
                         rawYawPitch = rawYawPitch.normalized * maximumYawPitchMagnitude;
@@ -86,6 +104,8 @@ namespace VCSpacePhysics.Ship.Controls
             _rotateInputPos.x = yawPitchInput.y; // Vertical movements pitch the ship, which is applied around the x axis
             _rotateInputPos.y = -yawPitchInput.x; // Horizontal movements yaw the ship, which is applied around the y axis
             SetRotationInput(_rotateInputNeg - _rotateInputPos);
+
+            mouseDelta = Vector2.zero;
         }
 
         private Vector2? GetYawPitchUILookingPoint()

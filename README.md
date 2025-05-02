@@ -59,7 +59,6 @@ it doesn't align with my vision.
 
 ## Known Bugs
 
-- The 1.1.0 update broke the ship pitch/yaw controls in third-person pilot view
 - New bugs in the first-person pilot view: (not sure if caused by 1.1.0 update or EVA camera unlocking changes)
 	- When the ship is rotated to certain angles, the limits of the camera are not applied correctly so the player may not be able to look in the expected directions. (I think this only affects pitch?)
 	- Sometimes when pitching the ship the player's view also pitches (might be related to previous issue)
