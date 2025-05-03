@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using CG.Game.Player;
+using HarmonyLib;
 using Opsive.UltimateCharacterController.Character;
 using Opsive.UltimateCharacterController.Character.Abilities;
 using System;
@@ -78,6 +79,33 @@ namespace VCSpacePhysics.EVA.Physics
                 return false;
             }
             return true;
+        }
+
+        // Disable friction when the player is in space.
+        // This also replicates default behaviour for how this value changes when the player
+        // is seated, on board the ship, or walking on the ship's external surfaces. I wasn't
+        // able to find where this is implemented in the base game, so I'm just overriding it here.
+        [HarmonyPrefix, HarmonyPatch(typeof(CharacterLocomotion), nameof(CharacterLocomotion.UpdateExternalForces))]
+        static void CharacterLocomotionUpdateExternalForces(CharacterLocomotion __instance)
+        {
+            var customLocomotion = (CustomCharacterLocomotion)__instance;
+            var player = __instance.GetComponent<Player>();
+
+            if (EVAUtils.IsPlayerSpaceborne(customLocomotion))
+            {
+                __instance.m_ExternalForceDamping = 0f;
+            }
+            else if (customLocomotion.DisableMovement)
+            {
+                __instance.m_ExternalForceDamping = 1000000000000000000000000000000000000f;
+            }
+            else if (player.IsInClearSpace)
+            {
+                __instance.m_ExternalForceDamping = 0.02f;
+            }
+            else {
+                __instance.m_ExternalForceDamping = 0.1f;
+            }
         }
     }
 }

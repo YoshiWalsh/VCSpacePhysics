@@ -43,8 +43,9 @@ it doesn't align with my vision.
 - [x] Make pitching the camera rotate the whole character and not just the head
 - [x] Unlock pitch to allow unlimited (360+ degree) rotation
 - [ ] Smooth animation to align up direction when landing on platforms with gravity (e.g. ship)
-- [ ] Remove friction
+- [x] Remove friction
 - [ ] Add roll control
+- [ ] Add collision damage
 
 ### Other
 
