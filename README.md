@@ -61,5 +61,4 @@ it doesn't align with my vision.
 
 - When an EVA player leaves the ship's hull, sometimes a bit of rotation or momentum is applied to their character
 - The automatic exit vector alignment doesn't account for angular momentum. This can cause it to overshoot the vector and slowly spiral to alignment, which takes a long time.
-- The player's pitch/roll during EVA uses the player's feet as the pivot point. This looks goofy.
 - Mod has only been tested in single player. Multiplayer is completely untested!

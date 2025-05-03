@@ -12,6 +12,12 @@ namespace VCSpacePhysics.EVA.Physics
     [HarmonyPatch]
     public class EVAPhysicsPatches
     {
+        [HarmonyPostfix, HarmonyPatch(typeof(CustomCharacterLocomotion), nameof(CustomCharacterLocomotion.Awake))]
+        static void CustomCharacterLocomotionAwake(CustomCharacterLocomotion __instance)
+        {
+            var evaPhysics = __instance.gameObject.AddComponent<EVAPhysics>();
+        }
+
         // This patch prevents the CharacterLocomotion and FirstPerson classes from snapping the
         // player to be globally-upright whenever they are not on a moving space platform.
         // It's important to re-enable the keep-upright behaviour when the player is grounded, because
