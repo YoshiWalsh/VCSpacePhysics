@@ -1,7 +1,8 @@
-using CG.Game.Player;
+﻿using CG.Game.Player;
 using HarmonyLib;
 using Opsive.UltimateCharacterController.Character;
 using Opsive.UltimateCharacterController.Character.Abilities;
+using Opsive.UltimateCharacterController.Game;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -143,5 +144,66 @@ namespace VCSpacePhysics.EVA.Physics
             var newMomentum = positionDeltaAfterCollisions.normalized * __instance.m_ExternalForce.magnitude * positionDeltaRatio;
             __instance.m_ExternalForce = newMomentum;
         }
+
+        // Test to see if this is what makes the player get downwards velocity when leaving ship hull
+        // // When player leaves ship hull, apply momentum
+        [HarmonyPrefix, HarmonyPatch(typeof(CustomCharacterLocomotion), nameof(CustomCharacterLocomotion.ApplyEjectionVelocity))]
+        static bool CustomCharacterLocomotionApplyEjectionVelocity()
+        {
+            // TODO: apply ship velocity
+            return false;
+        }
+
+        private struct GroundCollisionDetectionState
+        {
+            public Vector3 gravityDirection;
+        }
+
+        // Void Crew by default tests to see if the player is standing on a space platform by casting along worldspace down.
+        // This code changes the logic to use player-relative down. This means the player is able to land on things that are below their feet.
+        [HarmonyPrefix, HarmonyPatch(typeof(CharacterLocomotion), nameof(CharacterLocomotion.DetectGroundCollision))]
+        static bool CharacterLocomotionApplyGroundCollision(CharacterLocomotion __instance, ref GroundCollisionDetectionState __state)
+        {
+            __state = new GroundCollisionDetectionState()
+            {
+                gravityDirection = __instance.m_GravityDirection
+            };
+
+            var customLocomotion = (CustomCharacterLocomotion)__instance;
+            if (EVAUtils.IsPlayerSpaceborne(customLocomotion))
+            {
+                __instance.m_GravityDirection = __instance.gameObject.transform.up * -1;
+            }
+            return true;
+        }
+
+        [HarmonyPostfix, HarmonyPatch(typeof(CharacterLocomotion), nameof(CharacterLocomotion.DetectGroundCollision))]
+        static void CharacterLocomotionApplyGroundCollisionPostfix(CharacterLocomotion __instance, ref GroundCollisionDetectionState __state)
+        {
+            __instance.m_GravityDirection = __state.gravityDirection;
+        }
+
+        // Since we modified the player to have their grounding cast use local-down, this means the cast might hit the undersides of objects
+        // if the player is upside-down compared to them. This can cause the player to warp to the top of the object, which is undesired.
+        // To avoid this, we will prevent grounding the player unless their rotation is similar to that of the platform.
+        [HarmonyPrefix, HarmonyPatch(typeof(CharacterLocomotion), nameof(CharacterLocomotion.UpdateMovingPlatformTransform))]
+        static bool CharacterLocomotionUpdateMovingPlatformTransform(CharacterLocomotion __instance, ref bool __result, Transform hitTransform)
+        {
+            if(hitTransform != null)
+            {
+                var angle = Vector3.Angle(__instance.gameObject.transform.up, hitTransform.up);
+                Plugin.logger.LogMessage(hitTransform.gameObject.name);
+                Plugin.logger.LogMessage(angle);
+                if (angle > 45f) // Only allow the player to become grounded on space platforms that roughly match their rotation
+                {
+                    __result = false;
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        // TODO: Need to vertically align player when near a gravity zone
     }
 }
