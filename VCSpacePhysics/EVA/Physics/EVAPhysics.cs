@@ -37,7 +37,7 @@ namespace VCSpacePhysics.EVA.Physics
             Vector3 newRootPositionRelativeToCOG = rotation * currentRootPositionRelativeToCOG;
             Vector3 newRootPositionWorldspace = newRootPositionRelativeToCOG + COGWorldspace;
 
-            _locomotion.Rigidbody.position = _locomotion.gameObject.transform.position = newRootPositionWorldspace;
+            _locomotion.Rigidbody.MovePosition(newRootPositionWorldspace);
         }
 
         public void FixedUpdate()
