@@ -111,6 +111,12 @@ namespace VCSpacePhysics.Ship.Controls
         private Vector2? GetYawPitchUILookingPoint()
         {
             var yawPitchBridgeUI = YawPitchUI._instances.Find(i => i.type == YawPitchUI.YawPitchUIType.Spatial);
+
+            if(playerFirstPersonCamera == null)
+            {
+                return Vector2.zero;
+            }
+
             var cameraRay = new Ray(playerFirstPersonCamera.transform.position, playerFirstPersonCamera.transform.forward);
             return yawPitchBridgeUI.GetLookingPosition(cameraRay);
         }
