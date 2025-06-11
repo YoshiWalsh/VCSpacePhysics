@@ -44,6 +44,7 @@ it doesn't align with my vision.
 - [x] Unlock pitch to allow unlimited (360+ degree) rotation
 - [ ] Smooth animation to align up direction when landing on platforms with gravity (e.g. ship)
 - [x] Remove friction
+- [x] Fix player momentum not reducing during collisions
 - [ ] Add roll control
 - [ ] Add collision damage
 

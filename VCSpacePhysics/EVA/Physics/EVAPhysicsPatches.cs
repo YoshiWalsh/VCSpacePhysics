@@ -1,4 +1,4 @@
-﻿using CG.Game.Player;
+using CG.Game.Player;
 using HarmonyLib;
 using Opsive.UltimateCharacterController.Character;
 using Opsive.UltimateCharacterController.Character.Abilities;
@@ -106,6 +106,42 @@ namespace VCSpacePhysics.EVA.Physics
             else {
                 __instance.m_ExternalForceDamping = 0.1f;
             }
+        }
+
+        private struct CollisionDetectionState
+        {
+            public Vector3 positionDeltaBeforeCollisions;
+        }
+
+        // Store the player's intended position delta before processing collisions
+        // so we can access it after collisions have been processed.
+        [HarmonyPrefix, HarmonyPatch(typeof(CharacterLocomotion), nameof(CharacterLocomotion.DetectCollisions))]
+        static void CharacterLocomotionDetectCollisionsPrefix(CharacterLocomotion __instance, ref CollisionDetectionState __state)
+        {
+            __state = new CollisionDetectionState()
+            {
+                positionDeltaBeforeCollisions = __instance.m_DesiredMovement
+            };
+        }
+
+        // Update player's velocity and add damage
+        [HarmonyPostfix, HarmonyPatch(typeof(CharacterLocomotion), nameof(CharacterLocomotion.DetectCollisions))]
+        static void CharacterLocomotionDetectCollisionsPostfix(CharacterLocomotion __instance, ref CollisionDetectionState __state)
+        {
+            var positionDeltaBeforeCollisions = __state.positionDeltaBeforeCollisions;
+            var positionDeltaAfterCollisions = __instance.m_DesiredMovement;
+
+            var angleDeviation = Vector3.Angle(positionDeltaBeforeCollisions, positionDeltaAfterCollisions);
+            if(angleDeviation < 0.05f)
+            {
+                // Player didn't significantly change direction, assume no collision detected
+                return;
+            }
+
+            var positionDeltaRatio = positionDeltaAfterCollisions.magnitude / positionDeltaBeforeCollisions.magnitude;
+
+            var newMomentum = positionDeltaAfterCollisions.normalized * __instance.m_ExternalForce.magnitude * positionDeltaRatio;
+            __instance.m_ExternalForce = newMomentum;
         }
     }
 }
