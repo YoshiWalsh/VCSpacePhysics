@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using UnityEngine.UIElements;
 using VCSpacePhysics.EVA;
 
 namespace VCSpacePhysics.EVA.Physics
@@ -159,11 +160,15 @@ namespace VCSpacePhysics.EVA.Physics
             public Vector3 gravityDirection;
         }
 
+
+        static bool runningDetectGroundCollision = false;
         // Void Crew by default tests to see if the player is standing on a space platform by casting along worldspace down.
         // This code changes the logic to use player-relative down. This means the player is able to land on things that are below their feet.
         [HarmonyPrefix, HarmonyPatch(typeof(CharacterLocomotion), nameof(CharacterLocomotion.DetectGroundCollision))]
-        static bool CharacterLocomotionApplyGroundCollision(CharacterLocomotion __instance, ref GroundCollisionDetectionState __state)
+        static bool CharacterLocomotionDetectGroundCollision(CharacterLocomotion __instance, ref GroundCollisionDetectionState __state)
         {
+            runningDetectGroundCollision = true;
+
             __state = new GroundCollisionDetectionState()
             {
                 gravityDirection = __instance.m_GravityDirection
@@ -178,30 +183,43 @@ namespace VCSpacePhysics.EVA.Physics
         }
 
         [HarmonyPostfix, HarmonyPatch(typeof(CharacterLocomotion), nameof(CharacterLocomotion.DetectGroundCollision))]
-        static void CharacterLocomotionApplyGroundCollisionPostfix(CharacterLocomotion __instance, ref GroundCollisionDetectionState __state)
+        static void CharacterLocomotionDetectGroundCollisionPostfix(CharacterLocomotion __instance, ref GroundCollisionDetectionState __state)
         {
+            runningDetectGroundCollision = false;
+
             __instance.m_GravityDirection = __state.gravityDirection;
         }
 
         // Since we modified the player to have their grounding cast use local-down, this means the cast might hit the undersides of objects
         // if the player is upside-down compared to them. This can cause the player to warp to the top of the object, which is undesired.
         // To avoid this, we will prevent grounding the player unless their rotation is similar to that of the platform.
-        [HarmonyPrefix, HarmonyPatch(typeof(CharacterLocomotion), nameof(CharacterLocomotion.UpdateMovingPlatformTransform))]
-        static bool CharacterLocomotionUpdateMovingPlatformTransform(CharacterLocomotion __instance, ref bool __result, Transform hitTransform)
+        // The easiest way to do this is to filter the raycast results to only include game objects with similar rotations.
+        [HarmonyPostfix, HarmonyPatch(typeof(CharacterLocomotion), nameof(CharacterLocomotion.CombinedCast))]
+        static void CharacterLocomotionCombinedCast(CharacterLocomotion __instance, ref int __result)
         {
-            if(hitTransform != null)
+            var customLocomotion = (CustomCharacterLocomotion)__instance;
+            if (!EVAUtils.IsPlayerSpaceborne(customLocomotion))
             {
-                var angle = Vector3.Angle(__instance.gameObject.transform.up, hitTransform.up);
-                Plugin.logger.LogMessage(hitTransform.gameObject.name);
-                Plugin.logger.LogMessage(angle);
-                if (angle > 45f) // Only allow the player to become grounded on space platforms that roughly match their rotation
+                return;
+            }
+            if (runningDetectGroundCollision)
+            {
+                var count = 0;
+                for(var i = 0; i < __result; i++)
                 {
-                    __result = false;
-                    return false;
+                    var r = __instance.m_CombinedCastResults[i];
+                    if (r.transform is not null)
+                    {
+                        var angle = Vector3.Angle(__instance.gameObject.transform.up, r.transform.up);
+                        if (angle > 45f) // Only allow the player to become grounded on platforms that roughly match their rotation
+                        {
+                            continue;
+                        }
+                    }
+                    __instance.m_CombinedCastResults[count++] = r;
+                    __result = count;
                 }
             }
-            
-            return true;
         }
 
         // TODO: Need to vertically align player when near a gravity zone

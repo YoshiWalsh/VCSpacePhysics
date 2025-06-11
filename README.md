@@ -46,10 +46,12 @@ it doesn't align with my vision.
 - [x] Remove friction
 - [x] Fix player momentum not reducing during collisions
 - [ ] Add roll control
+- [ ] Smooth player rotation (Uncouple player camera/head pitch & yaw from body pitch & yaw, limit player head rotation, use momentum and PID loop to rotate player body gradually)
 - [ ] Add collision damage
-- [-] Land on ship hull when ship is rotated
+- [x] Land on ship hull when ship is rotated
 - [ ] Make player shoes less bouncy??
 - [ ] Fix interpolation mismatch (and simulation sync judder)
+- [ ] Automatically align player's rotation when near a gravity zone
 
 ### Other
 
@@ -64,7 +66,6 @@ it doesn't align with my vision.
 
 ## Known Bugs
 
-- If the player lands on the hull and their rotation does not match the ship's rotation, but is close to vertical in worldspace, the player can become grounded but not have the ship registered as a moving platform. This causes a bunch of weird behaviours.
 - When an EVA player leaves the ship's hull, sometimes a bit of rotation or momentum is applied to their character
 - The automatic exit vector alignment doesn't account for angular momentum. This can cause it to overshoot the vector and slowly spiral to alignment, which takes a long time.
 - Mod has only been tested in single player. Multiplayer is completely untested!
