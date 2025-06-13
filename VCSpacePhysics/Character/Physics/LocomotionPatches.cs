@@ -156,6 +156,25 @@ namespace VCSpacePhysics.Character.Physics
             return false;
         }
 
+        // Ensure can-jump tests uses player-local directions
+        [HarmonyTranspiler, HarmonyPatch(typeof(Jump), nameof(Jump.CanStartAbility))]
+        static IEnumerable<CodeInstruction> JumpCanStartAbilityTranspiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeMatcher = new CodeMatcher(instructions);
+
+            return codeMatcher
+                .MatchForward(false, new CodeMatch(OpCodes.Callvirt, AccessTools.PropertyGetter(typeof(CharacterLocomotion), nameof(CharacterLocomotion.Up))))
+                .Repeat(matcher =>
+                    matcher
+                        .RemoveInstruction()
+                        .InsertAndAdvance(
+                            new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(CharacterLocomotion), nameof(CharacterLocomotion.m_Transform))),
+                            new CodeInstruction(OpCodes.Callvirt, AccessTools.PropertyGetter(typeof(Transform), nameof(Transform.up)))
+                        )
+                )
+                .InstructionEnumeration();
+        }
+
         private struct GroundCollisionDetectionState
         {
             public Vector3 gravityDirection;
