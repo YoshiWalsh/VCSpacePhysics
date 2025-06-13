@@ -7,9 +7,9 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using CG.Game.Player;
-using VCSpacePhysics.EVA.Physics;
+using VCSpacePhysics.Character.Physics;
 
-namespace VCSpacePhysics.EVA.Controls
+namespace VCSpacePhysics.Character.Controls
 {
     [HarmonyPatch]
     public class JetpackControlsPatches

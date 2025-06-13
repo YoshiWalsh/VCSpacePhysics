@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
-namespace VCSpacePhysics.EVA.Physics
+namespace VCSpacePhysics.Character.Physics
 {
     public class EVAPhysics : MonoBehaviour
     {
@@ -42,7 +42,7 @@ namespace VCSpacePhysics.EVA.Physics
 
         public void FixedUpdate()
         {
-            if (EVAUtils.IsPlayerFlying(_locomotion))
+            if (CharacterUtils.IsPlayerFlying(_locomotion))
             {
                 if(_firstPersonView != null)
                 {

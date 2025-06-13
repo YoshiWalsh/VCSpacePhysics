@@ -5,15 +5,16 @@ using Opsive.UltimateCharacterController.Character.Abilities;
 using Opsive.UltimateCharacterController.Game;
 using System;
 using System.Collections.Generic;
+using System.Reflection.Emit;
 using System.Text;
 using UnityEngine;
 using UnityEngine.UIElements;
-using VCSpacePhysics.EVA;
+using VCSpacePhysics.Character;
 
-namespace VCSpacePhysics.EVA.Physics
+namespace VCSpacePhysics.Character.Physics
 {
     [HarmonyPatch]
-    public class EVAPhysicsPatches
+    public class LocomotionPatches
     {
         [HarmonyPostfix, HarmonyPatch(typeof(CustomCharacterLocomotion), nameof(CustomCharacterLocomotion.Awake))]
         static void CustomCharacterLocomotionAwake(CustomCharacterLocomotion __instance)
@@ -28,14 +29,14 @@ namespace VCSpacePhysics.EVA.Physics
         [HarmonyPostfix, HarmonyPatch(typeof(CustomCharacterLocomotion), nameof(CustomCharacterLocomotion.SetMovingPlatform))]
         static void CustomCharacterLocomotionSetMovingPlatform(CustomCharacterLocomotion __instance, Transform platform, bool platformOverride = true)
         {
-            __instance.AlignToUpDirection = !EVAUtils.IsPlayerSpaceborne(__instance);
+            __instance.AlignToUpDirection = !CharacterUtils.IsPlayerSpaceborne(__instance);
         }
 
         // TODO: I don't think this does anything. Test if it can be removed.
         [HarmonyPostfix, HarmonyPatch(typeof(CustomCharacterLocomotion), nameof(CustomCharacterLocomotion.Update))]
         static void CustomCharacterLocomotionUpdate(CustomCharacterLocomotion __instance)
         {
-            if (EVAUtils.IsPlayerFlying(__instance))
+            if (CharacterUtils.IsPlayerFlying(__instance))
             {
                 __instance.transform.rotation = __instance.LookSource.Transform.rotation;
             }
@@ -54,7 +55,7 @@ namespace VCSpacePhysics.EVA.Physics
         [HarmonyPrefix, HarmonyPatch(typeof(AlignToPlatformGravityZone), nameof(AlignToPlatformGravityZone.UpdateRotation))]
         static bool AlignToPlatformGravityZoneUpdateRotation(AlignToPlatformGravityZone __instance)
         {
-            if (EVAUtils.IsPlayerFlying(__instance.m_CharacterLocomotion))
+            if (CharacterUtils.IsPlayerFlying(__instance.m_CharacterLocomotion))
             {
                 return false;
             }
@@ -65,7 +66,7 @@ namespace VCSpacePhysics.EVA.Physics
         [HarmonyPrefix, HarmonyPatch(typeof(AlignToGravityZone), nameof(AlignToGravityZone.UpdateRotation))]
         static bool AlignToGravityZoneUpdateRotation(AlignToGravityZone __instance)
         {
-            if (EVAUtils.IsPlayerFlying(__instance.m_CharacterLocomotion))
+            if (CharacterUtils.IsPlayerFlying(__instance.m_CharacterLocomotion))
             {
                 return false;
             }
@@ -76,7 +77,7 @@ namespace VCSpacePhysics.EVA.Physics
         [HarmonyPrefix, HarmonyPatch(typeof(AlignToGround), nameof(AlignToGround.Update))]
         static bool AlignToGroundUpdate(AlignToGround __instance)
         {
-            if (EVAUtils.IsPlayerFlying(__instance.m_CharacterLocomotion))
+            if (CharacterUtils.IsPlayerFlying(__instance.m_CharacterLocomotion))
             {
                 return false;
             }
@@ -93,7 +94,7 @@ namespace VCSpacePhysics.EVA.Physics
             var customLocomotion = (CustomCharacterLocomotion)__instance;
             var player = __instance.GetComponent<Player>();
 
-            if (EVAUtils.IsPlayerSpaceborne(customLocomotion))
+            if (CharacterUtils.IsPlayerSpaceborne(customLocomotion))
             {
                 __instance.m_ExternalForceDamping = 0f;
             }
@@ -160,7 +161,6 @@ namespace VCSpacePhysics.EVA.Physics
             public Vector3 gravityDirection;
         }
 
-
         static bool runningDetectGroundCollision = false;
         // Void Crew by default tests to see if the player is standing on a space platform by casting along worldspace down.
         // This code changes the logic to use player-relative down. This means the player is able to land on things that are below their feet.
@@ -175,7 +175,7 @@ namespace VCSpacePhysics.EVA.Physics
             };
 
             var customLocomotion = (CustomCharacterLocomotion)__instance;
-            if (EVAUtils.IsPlayerSpaceborne(customLocomotion))
+            if (CharacterUtils.IsPlayerSpaceborne(customLocomotion))
             {
                 __instance.m_GravityDirection = __instance.gameObject.transform.up * -1;
             }
@@ -198,7 +198,7 @@ namespace VCSpacePhysics.EVA.Physics
         static void CharacterLocomotionCombinedCast(CharacterLocomotion __instance, ref int __result)
         {
             var customLocomotion = (CustomCharacterLocomotion)__instance;
-            if (!EVAUtils.IsPlayerSpaceborne(customLocomotion))
+            if (!CharacterUtils.IsPlayerSpaceborne(customLocomotion))
             {
                 return;
             }

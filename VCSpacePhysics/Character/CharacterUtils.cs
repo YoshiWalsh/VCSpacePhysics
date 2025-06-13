@@ -4,9 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace VCSpacePhysics.EVA
+namespace VCSpacePhysics.Character
 {
-    public static class EVAUtils
+    public static class CharacterUtils
     {
         public static bool IsPlayerJetpackEquipped(UltimateCharacterLocomotion character)
         {
