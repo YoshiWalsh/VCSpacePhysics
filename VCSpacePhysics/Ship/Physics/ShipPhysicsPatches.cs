@@ -11,7 +11,8 @@ namespace VCSpacePhysics.Ship.Physics
     [HarmonyPatch]
     public class ShipPhysicsPatches
     {
-        const float REARWARD_POWER_MULTIPLIER = 0.5f;
+        public const float REARWARD_POWER_MULTIPLIER = 0.5f;
+        public const float TORQUE_MULTIPLIER = 2f;
 
         // This patch (mostly) disables friction to the translation of the ship.
         // Friction for rotation is preserved. This is not realistic but is a concession to playability.
@@ -66,7 +67,7 @@ namespace VCSpacePhysics.Ship.Physics
             {
                 Vector3 a = __instance.InputSum(__instance.TorqueInputs);
                 var appliedPower = !__instance.boosted ? __instance.EngineTorquePower.y : __instance.BoosterTorquePower.y;
-                var torque = a * appliedPower * __instance.YawPower.Value * __instance.EnginePower.Value * 2f;
+                var torque = a * appliedPower * __instance.YawPower.Value * __instance.EnginePower.Value * TORQUE_MULTIPLIER;
                 __instance.ShipMovementController.AddTorque(torque * Time.fixedDeltaTime, __instance.userInputsTorque);
             }
 
