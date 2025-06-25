@@ -1,4 +1,4 @@
-﻿using Gameplay.Ship;
+using Gameplay.Ship;
 using Gameplay.SpacePlatforms;
 using HarmonyLib;
 using System;
@@ -19,9 +19,12 @@ namespace VCSpacePhysics.Ship.Physics
         [HarmonyPrefix, HarmonyPatch(typeof(MovingSpacePlatform), nameof(MovingSpacePlatform.ApplyFriction))]
         public static bool ApplyFriction(MovingSpacePlatform __instance, float deltaTime)
         {
-            float num2 = (__instance.addingTorque ? __instance.angularVelocity.magnitude : Mathf.Max(__instance.angularVelocity.magnitude, __instance.PhysicalData.MinAngularVelocityFriction));
-            float maxDistanceDelta2 = num2 * num2 * __instance.PhysicalData.AngularFriction * deltaTime / __instance.PhysicalData.Mass;
-            __instance.angularVelocity = Vector3.MoveTowards(__instance.angularVelocity, Vector3.zero, maxDistanceDelta2);
+            // Because the friction applied scales based on the square of the angular velocity, for very low angular velocities the applied friction rounds to zero and the ship would never fully stop rotating.
+            // For this reason if the ship is rotating extremely slowly, the Void Crew devs made it so friction will be applied based on a slightly faster rotation.
+            // This is disabled when the player is accelerating the ship, presumably so it doesn't feel sluggish to start rotating (or fail to start rotating at all!)
+            float effectiveAngularVelocity = (__instance.addingTorque ? __instance.angularVelocity.magnitude : Mathf.Max(__instance.angularVelocity.magnitude, __instance.PhysicalData.MinAngularVelocityFriction));
+            float angularVelocityReduction = effectiveAngularVelocity * effectiveAngularVelocity * __instance.PhysicalData.AngularFriction * deltaTime / __instance.PhysicalData.Mass;
+            __instance.angularVelocity = Vector3.MoveTowards(__instance.angularVelocity, Vector3.zero, angularVelocityReduction);
             __instance.addingForce = (__instance.addingTorque = false);
             return false;
         }
