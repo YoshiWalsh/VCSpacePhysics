@@ -55,15 +55,14 @@ namespace VCSpacePhysics.Utils
             }
 
             // We need to figure out a balance between cancelling our perpendicular momentum & moving towards the goal.
-            // I'm not 100% happy with the way I'm balancing this at the moment, but it's good enough for now.
-            var perpendicularPriority = Mathf.Clamp01((float)(timeAfterTurnover * 1.5f / (timeBeforeTurnover + timeAfterTurnover))); // Figuring out a nicer way to do this would yield smoother results
+            var perpendicularPriority = Mathf.Clamp01((float)(timeAfterTurnover / (timeBeforeTurnover + timeAfterTurnover)));
             
             var accelerationForPerpendicular = Mathf.Min(requiredPerpendicularAcceleration.magnitude, perpendicularPriority * maxAccelerationMagnitude);
             var accelerationForColinear = Mathf.Min(Mathf.Abs((float) requiredColinearAcceleration), maxAccelerationMagnitude - accelerationForPerpendicular);
             var totalAcceleration = accelerationForPerpendicular + accelerationForColinear;
             var accelerationRatio = totalAcceleration > 0 ? accelerationForColinear / totalAcceleration : 0;
 
-            var blendedAcceleration = Vector3.Lerp(requiredPerpendicularAcceleration, directionToTarget * (float)requiredColinearAcceleration, accelerationRatio);
+            var blendedAcceleration = Vector3.Lerp(requiredPerpendicularAcceleration.normalized, directionToTarget * Math.Sign(requiredColinearAcceleration), accelerationRatio);
 
             return blendedAcceleration.normalized * totalAcceleration;
         }
