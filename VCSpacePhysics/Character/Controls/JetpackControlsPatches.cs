@@ -14,11 +14,12 @@ namespace VCSpacePhysics.Character.Controls
     [HarmonyPatch]
     public class JetpackControlsPatches
     {
-        [HarmonyPostfix, HarmonyPatch(typeof(FirstPerson), nameof(FirstPerson.Rotate))]
-        static void FirstPersonRotate(FirstPerson __instance, float horizontalMovement, float verticalMovement, bool immediateUpdate)
+        [HarmonyPostfix, HarmonyPatch(typeof(CustomFirstPersonCombat), nameof(CustomFirstPersonCombat.Rotate))]
+        static void CustomFirstPersonCombatRotate(CustomFirstPersonCombat __instance)
         {
             var evaPhysics = __instance.m_CharacterLocomotion.GetComponent<EVAPhysics>();
             evaPhysics._firstPersonView = __instance; // This is super ugly but it's easy, please don't judge me for a moment of weakness, a single transgression
+            __instance.YawLimit = 90f;
         }
     }
 }

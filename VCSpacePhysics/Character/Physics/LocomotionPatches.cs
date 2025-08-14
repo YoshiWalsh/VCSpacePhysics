@@ -1,15 +1,12 @@
 ﻿using CG.Game.Player;
+using Client.Galaxy.Interactions;
+using Gameplay.SpacePlatforms;
 using HarmonyLib;
 using Opsive.UltimateCharacterController.Character;
 using Opsive.UltimateCharacterController.Character.Abilities;
-using Opsive.UltimateCharacterController.Game;
-using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
-using System.Text;
 using UnityEngine;
-using UnityEngine.UIElements;
-using VCSpacePhysics.Character;
 
 namespace VCSpacePhysics.Character.Physics
 {
@@ -20,6 +17,10 @@ namespace VCSpacePhysics.Character.Physics
         static void CustomCharacterLocomotionAwake(CustomCharacterLocomotion __instance)
         {
             var evaPhysics = __instance.gameObject.AddComponent<EVAPhysics>();
+
+            var capsuleCollider = __instance.Colliders[0];
+            var rigColliders = __instance.m_IgnoredColliders;
+            CollisionComponent.SetCollisionIgnoreState([capsuleCollider], rigColliders, true);
         }
 
         // This patch prevents the CharacterLocomotion and FirstPerson classes from snapping the
@@ -32,57 +33,26 @@ namespace VCSpacePhysics.Character.Physics
             __instance.AlignToUpDirection = !CharacterUtils.IsPlayerSpaceborne(__instance);
         }
 
-        // TODO: I don't think this does anything. Test if it can be removed.
+        // This is apparently important, look into why
         [HarmonyPostfix, HarmonyPatch(typeof(CustomCharacterLocomotion), nameof(CustomCharacterLocomotion.Update))]
         static void CustomCharacterLocomotionUpdate(CustomCharacterLocomotion __instance)
         {
-            if (CharacterUtils.IsPlayerFlying(__instance))
-            {
-                __instance.transform.rotation = __instance.LookSource.Transform.rotation;
-            }
-        }
-
-        // TODO: I don't think this does anything. Test if it can be removed.
-        // TODO: Attempt at avoiding the player from being launched/randomly rotated
-        // sometimes when they leave the ship's hull.
-        [HarmonyPrefix, HarmonyPatch(typeof(CharacterLocomotion), nameof(CharacterLocomotion.UpdateMovingPlaformDisconnectMovement))]
-        static bool CharacterLocomotionUpdateMovingPlaformDisconnectMovement()
-        {
-            return false;
+            //if (CharacterUtils.IsPlayerFlying(__instance))
+            //{
+            //    __instance.transform.rotation = __instance.LookSource.Transform.rotation;
+            //}
         }
 
         // TODO: Not sure if this does anything. Test if it can be removed.
-        [HarmonyPrefix, HarmonyPatch(typeof(AlignToPlatformGravityZone), nameof(AlignToPlatformGravityZone.UpdateRotation))]
-        static bool AlignToPlatformGravityZoneUpdateRotation(AlignToPlatformGravityZone __instance)
-        {
-            if (CharacterUtils.IsPlayerFlying(__instance.m_CharacterLocomotion))
-            {
-                return false;
-            }
-            return true;
-        }
-
-        // TODO: Not sure if this does anything. Test if it can be removed.
-        [HarmonyPrefix, HarmonyPatch(typeof(AlignToGravityZone), nameof(AlignToGravityZone.UpdateRotation))]
-        static bool AlignToGravityZoneUpdateRotation(AlignToGravityZone __instance)
-        {
-            if (CharacterUtils.IsPlayerFlying(__instance.m_CharacterLocomotion))
-            {
-                return false;
-            }
-            return true;
-        }
-
-        // TODO: Not sure if this does anything. Test if it can be removed.
-        [HarmonyPrefix, HarmonyPatch(typeof(AlignToGround), nameof(AlignToGround.Update))]
-        static bool AlignToGroundUpdate(AlignToGround __instance)
-        {
-            if (CharacterUtils.IsPlayerFlying(__instance.m_CharacterLocomotion))
-            {
-                return false;
-            }
-            return true;
-        }
+        //[HarmonyPrefix, HarmonyPatch(typeof(AlignToPlatformGravityZone), nameof(AlignToPlatformGravityZone.UpdateRotation))]
+        //static bool AlignToPlatformGravityZoneUpdateRotation(AlignToPlatformGravityZone __instance)
+        //{
+        //    if (CharacterUtils.IsPlayerFlying(__instance.m_CharacterLocomotion))
+        //    {
+        //        return false;
+        //    }
+        //    return true;
+        //}
 
         // Disable friction when the player is in space.
         // This also replicates default behaviour for how this value changes when the player
@@ -135,7 +105,7 @@ namespace VCSpacePhysics.Character.Physics
             var positionDeltaAfterCollisions = __instance.m_DesiredMovement;
 
             var angleDeviation = Vector3.Angle(positionDeltaBeforeCollisions, positionDeltaAfterCollisions);
-            if(angleDeviation < 0.05f)
+            if (angleDeviation < 0.05f)
             {
                 // Player didn't significantly change direction, assume no collision detected
                 return;
@@ -144,7 +114,7 @@ namespace VCSpacePhysics.Character.Physics
             var positionDeltaRatio = positionDeltaAfterCollisions.magnitude / positionDeltaBeforeCollisions.magnitude;
 
             var newMomentum = positionDeltaAfterCollisions.normalized * __instance.m_ExternalForce.magnitude * positionDeltaRatio;
-            __instance.m_ExternalForce = newMomentum;
+            //__instance.m_ExternalForce = newMomentum;
         }
 
         // Test to see if this is what makes the player get downwards velocity when leaving ship hull
@@ -224,12 +194,12 @@ namespace VCSpacePhysics.Character.Physics
             if (runningDetectGroundCollision)
             {
                 var count = 0;
-                for(var i = 0; i < __result; i++)
+                for (var i = 0; i < __result; i++)
                 {
                     var r = __instance.m_CombinedCastResults[i];
                     if (r.transform is not null)
                     {
-                        var angle = Vector3.Angle(__instance.gameObject.transform.up, r.transform.up);
+                        var angle = Vector3.Angle(__instance.Rigidbody.transform.up, r.transform.up);
                         if (angle > 45f) // Only allow the player to become grounded on platforms that roughly match their rotation
                         {
                             continue;
@@ -239,6 +209,85 @@ namespace VCSpacePhysics.Character.Physics
                     __result = count;
                 }
             }
+        }
+
+        // Stop parts of the player colliding with themselves
+        [HarmonyPostfix, HarmonyPatch(typeof(MovingSpacePlatform), nameof(MovingSpacePlatform.RemoveSimulationCharacter))]
+        static void MovingSpacePlatformRemoveSimulationCharacter(MovingSpacePlatform __instance, ISimulatedCharacter rb) {
+            rb.MainRigidbody.isKinematic = false; // This line enables Unity's physics engine
+
+            rb.Character.ExternalForce = Vector3.zero;
+            rb.Character.MotorThrottle = Vector3.zero;
+            rb.Character.DesiredMovement = Vector3.zero;
+            rb.Character.TargetPosition = rb.Character.Rigidbody.position;
+            rb.Character.TargetRotation = rb.Character.Rigidbody.rotation;
+
+            rb.MainRigidbody.angularVelocity = Vector3.zero;
+            rb.MainRigidbody.velocity = Vector3.zero;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(CharacterLocomotion), nameof(CharacterLocomotion.UpdatePosition))]
+        static bool CustomCharacterLocomotionUpdatePosition(CharacterLocomotion __instance)
+        {
+            if (!__instance.Rigidbody.isKinematic)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(CharacterLocomotion), nameof(CharacterLocomotion.ApplyPosition))]
+        static bool CustomCharacterLocomotionApplyPosition(CharacterLocomotion __instance)
+        {
+            if (!__instance.Rigidbody.isKinematic)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(CharacterLocomotion), nameof(CharacterLocomotion.UpdateRotation))]
+        static bool CustomCharacterLocomotionUpdateRotation(CharacterLocomotion __instance)
+        {
+            if (!__instance.Rigidbody.isKinematic)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(CharacterLocomotion), nameof(CharacterLocomotion.ApplyRotation))]
+        static bool CustomCharacterLocomotionApplyRotation(CharacterLocomotion __instance)
+        {
+            if (!__instance.Rigidbody.isKinematic)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(CharacterLocomotion), nameof(CharacterLocomotion.AddExternalForce))]
+        static bool CharacterLocomotionAddExternalForce(CharacterLocomotion __instance, Vector3 force)
+        {
+            if (!__instance.Rigidbody.isKinematic)
+            {
+                __instance.Rigidbody.AddForce(force, ForceMode.VelocityChange);
+                return false;
+            }
+            return true;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(MovingSpacePlatform), nameof(MovingSpacePlatform.AddSimulationCharacter))]
+        static void MovingSpacePlatformAddSimulationCharacterPrefix(MovingSpacePlatform __instance, ISimulatedCharacter rb, ref bool __state)
+        {
+            __state = rb.Character.m_CollisionLayerEnabled;
+            rb.Character.EnableColliderCollisionLayer(true);
+        }
+
+        [HarmonyPostfix, HarmonyPatch(typeof(MovingSpacePlatform), nameof(MovingSpacePlatform.AddSimulationCharacter))]
+        static void MovingSpacePlatformAddSimulationCharacterPostfix(MovingSpacePlatform __instance, ISimulatedCharacter rb, ref bool __state)
+        {
+            rb.Character.EnableColliderCollisionLayer(__state);
         }
 
         // TODO: Need to vertically align player when near a gravity zone
