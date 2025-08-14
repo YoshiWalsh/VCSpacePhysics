@@ -37,6 +37,9 @@
       <Reference Include="Opsive.Shared">
         <HintPath>..\..\..\SecondarySteamLibrary\steamapps\common\Void Crew\Void Crew_Data\Managed\Opsive.Shared.dll</HintPath>
       </Reference>
+      <Reference Include="Opsive.Shared.Utility">
+        <HintPath>..\..\..\SecondarySteamLibrary\steamapps\common\Void Crew\Void Crew_Data\Managed\Opsive.Shared.Utility.dll</HintPath>
+      </Reference>
       <Reference Include="Opsive.UltimateCharacterController" Publicize="true">
         <HintPath>..\..\..\SecondarySteamLibrary\steamapps\common\Void Crew\Void Crew_Data\Managed\Opsive.UltimateCharacterController.dll</HintPath>
       </Reference>
