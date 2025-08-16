@@ -215,7 +215,7 @@ namespace VCSpacePhysics.Character.Physics
         [HarmonyPostfix, HarmonyPatch(typeof(MovingSpacePlatform), nameof(MovingSpacePlatform.RemoveSimulationCharacter))]
         static void MovingSpacePlatformRemoveSimulationCharacter(MovingSpacePlatform __instance, ISimulatedCharacter rb) {
             rb.MainRigidbody.isKinematic = false; // This line enables Unity's physics engine
-            rb.MainRigidbody.angularDrag = 0.1f;
+            rb.MainRigidbody.angularDrag = 0.4f;
 
             rb.Character.ExternalForce = Vector3.zero;
             rb.Character.MotorThrottle = Vector3.zero;
